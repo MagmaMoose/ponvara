@@ -1,13 +1,12 @@
-"""SecurityBridge — a finding bus between security sources and DefectDojo.
+"""securitybridge — a finding bus between security sources and DefectDojo.
 
-Phase 0 scaffold: this package is intentionally empty. SecurityBridge will promote
-the in-cluster ``dt-defectdojo-sync`` CronJob into a long-lived, tested, versioned
-service — a *finding bus* with pluggable source connectors (Dependency-Track,
-SonarQube, and future DAST) that reimport into DefectDojo over its REST API and
-auto-push High/Critical findings to GitHub Issues.
+Phase 1: the Dependency-Track → DefectDojo sync, ported out of the in-cluster
+ConfigMap script and **off the Django ORM** onto the DefectDojo REST API (so it
+runs on a slim image, decoupled from DefectDojo's version). For each Dependency-Track
+project it exports the findings (FPF) and ``reimport-scan``s them into DefectDojo.
 
-Nothing here runs yet. The migration is planned in phases; see ``docs/DESIGN.md``
-and the "Not yet implemented" note in ``README.md``.
+The zero-touch GitHub-issue auto-push is the next phase (it was the other Django-ORM
+user); see ``docs/DESIGN.md``.
 """
 
-__version__ = "0.0.0"
+__version__ = "0.1.0"

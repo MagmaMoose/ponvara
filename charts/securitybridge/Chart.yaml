@@ -1,21 +1,17 @@
 apiVersion: v2
 name: securitybridge
 description: >-
-  Finding bus between security sources (Dependency-Track, SonarQube, future DAST)
-  and DefectDojo, with zero-touch GitHub-issue auto-push. Phase 0 stub chart — not
-  yet deployable; see docs/DESIGN.md.
+  REST Dependency-Track → DefectDojo sync (no Django ORM). Phase 1: an hourly
+  CronJob that reimports every Dependency-Track project's findings into DefectDojo.
 type: application
-# Chart version — bumped independently of the app.
+
 version: 0.1.0
-# appVersion tracks the container image tag. 0.0.0 == Phase 0 scaffold (no image
-# published yet). Flux's ImagePolicy will rewrite the deployed tag once releases
-# start; do not hand-bump this to imply a working build exists.
-appVersion: "0.0.0"
+appVersion: "0.1.0"
+
 keywords:
   - security
   - defectdojo
   - dependency-track
-  - sonarqube
   - finding-bus
 home: https://github.com/MagmaMoose/securitybridge
 sources:

@@ -1,40 +1,20 @@
-# SecurityBridge — Phase 0 scaffold.
+# securitybridge — Phase 1: REST Dependency-Track → DefectDojo sync.
 #
-# This is a *seed* project file. The package under `src/securitybridge/` is an
-# empty, version 0.0.0 shell (no working code yet). The dependency list, scripts
-# entry, and tooling config below describe the *intended* runtime shape from
-# docs/DESIGN.md so later phases have a real base to build against — they do not
-# imply the service exists yet. See "Status: Planning (Phase 0)" in README.md.
+# Deliberately slim: the legacy CronJob ran inside the heavy defectdojo-django
+# image to use the Django ORM. This reaches DefectDojo over its REST API via httpx
+# instead, so it runs on python:3.12-slim, decoupled from DefectDojo's version.
+# The long-lived service (FastAPI + APScheduler + Prometheus) and the GitHub-issue
+# push (PyGithub) return as deps in later phases; see docs/DESIGN.md.
 [project]
 name = "securitybridge"
-version = "0.0.0"
-description = "Finding bus: pluggable source connectors -> DefectDojo reimport + zero-touch GitHub-issue auto-push."
+version = "0.1.0"
+description = "Finding bus: Dependency-Track → DefectDojo sync over the REST API (no Django ORM)."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 authors = [{ name = "Caleb Sargeant", email = "caleb@magmamoose.com" }]
-keywords = [
-  "security",
-  "defectdojo",
-  "dependency-track",
-  "sonarqube",
-  "sarif",
-  "finding-bus",
-  "vulnerability-management",
-]
-# Intended runtime deps for the long-lived service (Phases 1-4). The Django ORM
-# coupling of the legacy CronJob is deliberately absent: DefectDojo is reached
-# over its REST API via httpx, which is the whole point (slim image,
-# version-decoupled). See docs/DESIGN.md sect. 4.
-dependencies = [
-  "httpx",
-  "pydantic-settings",
-  "apscheduler",
-  "fastapi",
-  "uvicorn[standard]",
-  "PyGithub",
-  "prometheus-client",
-]
+keywords = ["security", "defectdojo", "dependency-track", "finding-bus", "vulnerability-management"]
+dependencies = ["httpx", "pydantic-settings"]
 
 [project.scripts]
 securitybridge = "securitybridge.__main__:main"
