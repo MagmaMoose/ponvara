@@ -42,6 +42,7 @@ externalSecrets:
 # House convention: worker node, CPU request only (no CPU limit), memory limited.
 nodeSelector:
   node-role.kubernetes.io/worker: ""
+
 resources:
   requests:
     cpu: 50m
