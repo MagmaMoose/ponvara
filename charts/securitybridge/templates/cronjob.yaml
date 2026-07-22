@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "securitybridge.fullname" . }}
+  labels: {{- include "securitybridge.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.schedule | quote }}
+  concurrencyPolicy: {{ .Values.concurrencyPolicy }}
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: {{ .Values.backoffLimit }}
+      activeDeadlineSeconds: {{ .Values.activeDeadlineSeconds }}
+      template:
+        metadata:
+          labels: {{- include "securitybridge.selectorLabels" . | nindent 12 }}
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          {{- with .Values.nodeSelector }}
+          nodeSelector: {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext: {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          containers:
+            - name: securitybridge
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              args: ["sync"]
+              securityContext: {{- toYaml .Values.securityContext | nindent 16 }}
+              env:
+                - name: DTRACK_API_URL
+                  value: {{ .Values.dependencyTrack.url | quote }}
+                - name: DEFECTDOJO_URL
+                  value: {{ .Values.defectDojo.url | quote }}
+                - name: DD_PRODUCT_TYPE
+                  value: {{ .Values.defectDojo.productType | quote }}
+                - name: DD_ENGAGEMENT
+                  value: {{ .Values.defectDojo.engagement | quote }}
+                - name: DTRACK_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "securitybridge.fullname" . }}
+                      key: DTRACK_API_KEY
+                - name: DEFECTDOJO_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "securitybridge.fullname" . }}
+                      key: DEFECTDOJO_TOKEN
+              resources: {{- toYaml .Values.resources | nindent 16 }}

@@ -1,70 +1,47 @@
-# SecurityBridge Helm values — PHASE 0 STUB.
+# =============================================================================
+# securitybridge — Helm values (Phase 1: REST Dependency-Track → DefectDojo sync)
 #
-# This is a values *sketch* from docs/DESIGN.md, not a working configuration.
-# There are no chart templates yet (charts/securitybridge/templates/ is empty),
-# no published image, and nothing here is wired to Flux. It exists so the intended
-# deployment shape is reviewable and the keys are stable for later phases. Do not
-# `helm install` this expecting a running service.
-#
-# Target platform (mirrors the MagmaMoose/chargate broker deploy pattern): a k3s
-# cluster reconciled by FluxCD, secrets via External Secrets Operator backed by
-# OCI Vault, external exposure (if any) via a cloudflared tunnel.
+# One hourly CronJob runs `securitybridge sync`: it reimports every Dependency-Track
+# project's findings into DefectDojo over the REST API (no Django ORM). Reads the
+# DT API key + a PROVISIONED DefectDojo API token from a Secret that External
+# Secrets Operator materialises from OCI Vault. Writes nothing to disk (read-only
+# root fs). The long-lived service + GitHub-issue push are later phases.
+# =============================================================================
 
-# Container image. Tag is left empty so Flux's ImagePolicy fills it on each GHCR
-# release (Phase 3+). No image is published yet.
+nameOverride: ""
+fullnameOverride: ""
+
 image:
   repository: ghcr.io/magmamoose/securitybridge
-  tag: ""
+  tag: "" # defaults to Chart.appVersion; a Flux ImagePolicy can bump it
   pullPolicy: IfNotPresent
 
-# Runtime shape. "deployment" == long-lived FastAPI + APScheduler service (the
-# recommended target). "cronjob" == retain batch semantics but from our own slim
-# image. The chart is intended to support both so the choice stays reversible.
-mode: deployment
+schedule: "0 * * * *" # hourly (matches the legacy CronJob; reimport dedups)
+concurrencyPolicy: Forbid
+backoffLimit: 1
+activeDeadlineSeconds: 1800
 
-replicaCount: 1
-# Single-writer service; recreate rather than roll to avoid two schedulers racing.
-strategy:
-  type: Recreate
+dependencyTrack:
+  url: http://dependency-track-api-server.security.svc.cluster.local:8080
 
-# Per-source schedules. Cron strings for mode=cronjob; APScheduler intervals for
-# mode=deployment. Mirrors the legacy CronJobs' hourly / +30m offset.
-schedule:
-  dependencyTrack: "0 * * * *"
-  sonarqube: "30 * * * *"
-
-# DefectDojo sink — reached over the REST API (NOT the Django ORM). In-cluster
-# service DNS, no Cloudflare round-trip.
 defectDojo:
   url: http://defectdojo-django.security.svc.cluster.local
-  productType: Dependency-Track
+  productType: "Dependency-Track"
+  engagement: "Dependency Track"
 
-# Source connectors. Each is independently toggleable so a new source is a new
-# connector + a new block here.
-sources:
-  dependencyTrack:
-    enabled: true
-    url: http://dependency-track-api-server.security.svc.cluster.local:8080
-  sonarqube:
-    enabled: true
-    url: https://sonarqube.magmamoose.com
-
-# Zero-touch GitHub-issue auto-push (the cross-cutting enrichment DefectDojo can't
-# do generically). Only findings at/above minSeverity open issues.
-github:
-  minSeverity: High
-  maxIssuesPerRun: 50
-
-# External Secrets Operator -> OCI Vault. Reuse the existing keys; Phase 1 adds
-# one new key (securitybridge-dd-token) for the dedicated DefectDojo service user.
+# ESO → OCI Vault. Reuse the existing DT key; Phase 1 adds ONE new key: a
+# provisioned DefectDojo service-user API token (replaces the old ORM token-mint).
 externalSecrets:
+  enabled: true
   store: oci-vault
-  keys:
-    dtrackApiKey: dependency-track-api-key
-    ddApiToken: securitybridge-dd-token   # NEW — dedicated DD service-user token (Phase 1)
-    githubTargets: github-issue-targets
-    sonarToken: defectdojo-api-key
+  storeKind: ClusterSecretStore
+  refreshInterval: "1h"
+  dtrackApiKeyRef: dependency-track-api-key # existing OCI Vault key → DTRACK_API_KEY
+  defectDojoTokenRef: securitybridge-dd-token # NEW OCI Vault key → DEFECTDOJO_TOKEN
 
+# House convention: worker node, CPU request only (no CPU limit), memory limited.
+nodeSelector:
+  node-role.kubernetes.io/worker: ""
 resources:
   requests:
     cpu: 50m
@@ -72,21 +49,7 @@ resources:
   limits:
     memory: 256Mi
 
-# Prometheus ServiceMonitor for the /metrics endpoint (mode=deployment).
-serviceMonitor:
-  enabled: true
-
-# External exposure of the trigger API (POST /sync/{source}) is off by default;
-# wire a cloudflared tunnel if it's ever needed. Not an in-cluster Ingress.
-ingress:
-  enabled: false
-
-# Heavy app pods live on the worker node (house convention, mirrors the CronJob).
-nodeSelector:
-  node-role.kubernetes.io/worker: ""
-
-# Hardening — mirror the tightened SonarQube CronJob: non-root high UID, read-only
-# root fs, seccomp RuntimeDefault, drop all caps.
+# Hardening — mirrors the tightened SonarQube sync CronJob.
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 10001
@@ -97,8 +60,3 @@ securityContext:
   readOnlyRootFilesystem: true
   capabilities:
     drop: ["ALL"]
-
-# It never calls the Kubernetes API, so don't mount a token.
-serviceAccount:
-  create: true
-  automountServiceAccountToken: false
