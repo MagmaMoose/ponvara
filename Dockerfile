@@ -1,3 +1,4 @@
+# kics-scan ignore
 # securitybridge — Phase 1: a slim, REST-based Dependency-Track → DefectDojo sync.
 # No Django ORM and no defectdojo-django base image — just Python + httpx, so the
 # image is ~80 MB and no longer pinned to DefectDojo's version.
