@@ -1,9 +1,12 @@
 # SecurityBridge
 
-> **Status: Planning (Phase 0).** This is a seed repository. The design is settled
-> (see [`docs/DESIGN.md`](docs/DESIGN.md)); the code is not written yet. The package
-> under `src/securitybridge/` is an empty `0.0.0` shell and the Helm chart is a stub.
-> Nothing here runs.
+> **Status: Phase 1 — REST Dependency-Track → DefectDojo sync.** The core sync is
+> ported off the Django ORM onto the DefectDojo **REST API** (httpx) and runs on a
+> slim `python:3.12-slim` image: for each Dependency-Track project it exports the
+> findings (FPF) and `reimport-scan`s them into DefectDojo. Ships as a Helm chart
+> (an hourly CronJob + ExternalSecret). The zero-touch **GitHub-issue push** (the
+> other Django-ORM user) is the next phase; the long-lived FastAPI service is later.
+> See [Running](#running-phase-1) and [`docs/DESIGN.md`](docs/DESIGN.md).
 
 SecurityBridge is a **finding bus**: a long-lived backend that pulls security
 findings from sources that can't push to [DefectDojo](https://github.com/DefectDojo/django-DefectDojo)
@@ -15,6 +18,33 @@ accounts.
 It promotes an existing, working-but-fragile in-cluster CronJob
 (`dt-defectdojo-sync`) into its own tested, versioned, slim service — and generalizes
 it so a new source is a new connector module.
+
+## Running (Phase 1)
+
+Cluster (Helm — an hourly CronJob + ExternalSecret; DT key + a **provisioned**
+DefectDojo API token come from OCI Vault via External Secrets Operator):
+
+```sh
+helm template securitybridge charts/securitybridge      # render/inspect
+```
+
+Container / locally (needs `DTRACK_API_KEY` + a provisioned `DEFECTDOJO_TOKEN`):
+
+```sh
+docker build -t ghcr.io/magmamoose/securitybridge:0.1.0 .
+docker run --rm \
+  -e DTRACK_API_URL -e DTRACK_API_KEY \
+  -e DEFECTDOJO_URL -e DEFECTDOJO_TOKEN \
+  ghcr.io/magmamoose/securitybridge:0.1.0 sync
+```
+
+`securitybridge sync` reimports every active Dependency-Track project into DefectDojo
+once, then exits (the CronJob schedules it). Per-project failures are logged and
+skipped; only an unreachable Dependency-Track or a missing token is fatal.
+
+> **Phase 1 needs one new secret:** a **provisioned DefectDojo API token** (a service
+> user), stored in the OCI Vault key `securitybridge-dd-token`. This replaces the old
+> ORM token-minting — the whole reason the image can now be slim + version-decoupled.
 
 ## What & why
 
