@@ -55,11 +55,15 @@ def test_secret_scanning_transform_is_high_severity():
     assert f["unique_id_from_tool"] == "secret-scanning-3"
 
 
+_UNSET = object()
+
+
 class _FakeGitHub:
-    def __init__(self, *, sarif=b"{}", dependabot=None, secret=None, raise_on=None):
+    def __init__(self, *, sarif=b"{}", dependabot=_UNSET, secret=_UNSET, raise_on=None):
         self._sarif = sarif
-        self._dependabot = dependabot or []
-        self._secret = secret or []
+        # None means "feed disabled" (returns None to caller); _UNSET defaults to [].
+        self._dependabot = [] if dependabot is _UNSET else dependabot
+        self._secret = [] if secret is _UNSET else secret
         self._raise_on = raise_on or set()
 
     def code_scanning_sarif(self, owner, repo):
@@ -123,3 +127,24 @@ def test_run_github_sync_skips_bad_repo_names():
 
     assert dd.calls == []
     assert summary.imported == 0
+
+
+def test_run_github_sync_disabled_feed_does_not_wipe_dojo():
+    """None from dependabot_alerts/secret_scanning_alerts must never reach reimport.
+
+    A scoped-down token (or a repo where a surface is off) causes _paginate to
+    return None.  The sync must count that as empty, not call reimport with an
+    empty findings list — which would tell DefectDojo to close all known findings.
+    """
+    gh = _FakeGitHub(sarif=b'{"runs":[]}', dependabot=None, secret=None)
+    dd = _FakeDojo()
+
+    summary = run_github_sync(
+        gh, dd, repos=["o/r"], product_type="GHAS", engagement="GHAS", log=lambda _m: None
+    )
+
+    # Only code scanning was available; Dependabot and secret scanning were disabled.
+    assert summary.imported == 1
+    assert summary.empty == 2
+    assert len(dd.calls) == 1
+    assert dd.calls[0]["scan_type"] == "SARIF"

@@ -58,12 +58,38 @@ def test_dependabot_alerts_sends_auth_and_returns_list():
     assert seen["apiver"] == "2022-11-28"
 
 
-def test_secret_scanning_disabled_returns_empty():
+def test_secret_scanning_disabled_returns_none():
     def handler(request):
         return httpx.Response(403, json={"message": "secret scanning disabled"})
 
     gh = GitHubClient("https://api.github.com", "tok", client=_client(handler))
-    assert gh.secret_scanning_alerts("o", "r") == []
+    assert gh.secret_scanning_alerts("o", "r") is None
+
+
+def test_paginate_follows_link_header_and_sends_params_only_on_first_page():
+    """_paginate must follow Link: rel="next" and suppress params on subsequent pages."""
+    seen_params: list[dict] = []
+
+    def handler(request):
+        seen_params.append(dict(request.url.params))
+        if not request.url.params.get("page"):
+            # First page: respond with one item and a Link header pointing to page 2.
+            next_url = str(request.url).split("?")[0] + "?page=2"
+            return httpx.Response(
+                200,
+                json=[{"number": 1}],
+                headers={"Link": f'<{next_url}>; rel="next"'},
+            )
+        # Second page: respond with one item, no further Link header.
+        return httpx.Response(200, json=[{"number": 2}])
+
+    gh = GitHubClient("https://api.github.com", "tok", client=_client(handler))
+    alerts = gh.dependabot_alerts("o", "r")
+
+    assert alerts == [{"number": 1}, {"number": 2}]
+    # First request carries the per_page/state params; second uses the next URL as-is.
+    assert "per_page" in seen_params[0]
+    assert "per_page" not in seen_params[1]
 
 
 def test_list_org_repos_skips_archived():

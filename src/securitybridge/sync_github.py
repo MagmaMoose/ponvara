@@ -39,8 +39,8 @@ def _severity(value: str | None) -> str:
 
 class _GitHub(Protocol):
     def code_scanning_sarif(self, owner: str, repo: str) -> bytes | None: ...
-    def dependabot_alerts(self, owner: str, repo: str) -> list[dict]: ...
-    def secret_scanning_alerts(self, owner: str, repo: str) -> list[dict]: ...
+    def dependabot_alerts(self, owner: str, repo: str) -> list[dict] | None: ...
+    def secret_scanning_alerts(self, owner: str, repo: str) -> list[dict] | None: ...
 
 
 class _Dojo(Protocol):
@@ -150,13 +150,21 @@ def run_github_sync(
                 "dependabot",
                 "Generic Findings Import",
                 "GHAS Dependabot",
-                lambda o=owner, r=repo: dependabot_to_generic(gh.dependabot_alerts(o, r)),
+                lambda o=owner, r=repo: (
+                    None
+                    if (alerts := gh.dependabot_alerts(o, r)) is None
+                    else dependabot_to_generic(alerts)
+                ),
             ),
             (
                 "secret-scanning",
                 "Generic Findings Import",
                 "GHAS secret scanning",
-                lambda o=owner, r=repo: secret_scanning_to_generic(gh.secret_scanning_alerts(o, r)),
+                lambda o=owner, r=repo: (
+                    None
+                    if (alerts := gh.secret_scanning_alerts(o, r)) is None
+                    else secret_scanning_to_generic(alerts)
+                ),
             ),
         ]
 

@@ -49,8 +49,8 @@ class GitHubClient:
             "User-Agent": _USER_AGENT,
         }
 
-    def _paginate(self, url: str, params: dict[str, str | int]) -> list[dict]:
-        """Follow RFC-5988 ``Link: rel="next"`` pagination; [] if the feed is off."""
+    def _paginate(self, url: str, params: dict[str, str | int]) -> list[dict] | None:
+        """Follow RFC-5988 ``Link: rel="next"`` pagination; None if feed is disabled."""
         out: list[dict] = []
         page: str | None = url
         first = True
@@ -62,7 +62,7 @@ class GitHubClient:
                 timeout=self._timeout,
             )
             if resp.status_code in _DISABLED_STATUSES:
-                return []
+                return None
             resp.raise_for_status()
             out.extend(resp.json())
             page = resp.links.get("next", {}).get("url")
@@ -106,15 +106,15 @@ class GitHubClient:
         sarif.raise_for_status()
         return sarif.content
 
-    def dependabot_alerts(self, owner: str, repo: str) -> list[dict]:
-        """Open Dependabot (SCA) alerts for the repo."""
+    def dependabot_alerts(self, owner: str, repo: str) -> list[dict] | None:
+        """Open Dependabot (SCA) alerts for the repo; None if feed is disabled."""
         return self._paginate(
             f"{self._base}/repos/{owner}/{repo}/dependabot/alerts",
             {"state": "open", "per_page": 100},
         )
 
-    def secret_scanning_alerts(self, owner: str, repo: str) -> list[dict]:
-        """Open secret-scanning alerts for the repo."""
+    def secret_scanning_alerts(self, owner: str, repo: str) -> list[dict] | None:
+        """Open secret-scanning alerts for the repo; None if feed is disabled."""
         return self._paginate(
             f"{self._base}/repos/{owner}/{repo}/secret-scanning/alerts",
             {"state": "open", "per_page": 100},
