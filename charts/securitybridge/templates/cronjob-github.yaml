@@ -1,0 +1,62 @@
+# kics-scan ignore
+{{- if .Values.github.enabled }}
+# GitHub Advanced Security → DefectDojo sync (`securitybridge sync-github`).
+# Pulls code scanning (SARIF) + Dependabot + secret scanning for each configured
+# repo and reimports them into DefectDojo. Shares the ExternalSecret Secret with
+# the Dependency-Track sync (adds GITHUB_TOKEN when github.enabled).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "securitybridge.fullname" . }}-github
+  labels: {{- include "securitybridge.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.github.schedule | quote }}
+  concurrencyPolicy: {{ .Values.concurrencyPolicy }}
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: {{ .Values.backoffLimit }}
+      activeDeadlineSeconds: {{ .Values.activeDeadlineSeconds }}
+      template:
+        metadata:
+          labels: {{- include "securitybridge.selectorLabels" . | nindent 12 }}
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          {{- with .Values.nodeSelector }}
+          nodeSelector: {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext: {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          containers:
+            - name: securitybridge
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              args: ["sync-github"]
+              securityContext: {{- toYaml .Values.securityContext | nindent 16 }}
+              env:
+                - name: GITHUB_API_URL
+                  value: {{ .Values.github.apiUrl | quote }}
+                - name: GITHUB_REPOS
+                  value: {{ .Values.github.repos | quote }}
+                - name: GITHUB_ORG
+                  value: {{ .Values.github.org | quote }}
+                - name: DEFECTDOJO_URL
+                  value: {{ .Values.defectDojo.url | quote }}
+                - name: DD_GITHUB_PRODUCT_TYPE
+                  value: {{ .Values.github.productType | quote }}
+                - name: DD_GITHUB_ENGAGEMENT
+                  value: {{ .Values.github.engagement | quote }}
+                - name: GITHUB_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "securitybridge.fullname" . }}
+                      key: GITHUB_TOKEN
+                - name: DEFECTDOJO_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "securitybridge.fullname" . }}
+                      key: DEFECTDOJO_TOKEN
+              resources: {{- toYaml .Values.resources | nindent 16 }}
+{{- end }}
