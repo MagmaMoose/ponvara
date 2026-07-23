@@ -13,3 +13,7 @@ build/
 
 # OS / editor
 .DS_Store
+
+# Local agent tooling (Claude Code) — never commit; keeps employer/context
+# notes out of this public repo.
+.claude/
