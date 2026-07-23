@@ -29,8 +29,21 @@ defectDojo:
   productType: "Dependency-Track"
   engagement: "Dependency Track"
 
+# GitHub Advanced Security → DefectDojo sync (`securitybridge sync-github`).
+# Disabled by default. When enabled, a second CronJob pulls code scanning (SARIF)
+# + Dependabot + secret scanning for the repos/org below into DefectDojo.
+github:
+  enabled: false
+  schedule: "0 */6 * * *" # every 6 hours
+  apiUrl: https://api.github.com
+  repos: "" # "owner/repo,owner/repo2"; leave empty to enumerate `org`
+  org: ""
+  productType: "GitHub Advanced Security"
+  engagement: "GHAS"
+
 # ESO → OCI Vault. Reuse the existing DT key; Phase 1 adds ONE new key: a
 # provisioned DefectDojo service-user API token (replaces the old ORM token-mint).
+# githubTokenRef is only read when github.enabled.
 externalSecrets:
   enabled: true
   store: oci-vault
@@ -38,6 +51,7 @@ externalSecrets:
   refreshInterval: "1h"
   dtrackApiKeyRef: dependency-track-api-key # existing OCI Vault key → DTRACK_API_KEY
   defectDojoTokenRef: securitybridge-dd-token # NEW OCI Vault key → DEFECTDOJO_TOKEN
+  githubTokenRef: securitybridge-github-token # OCI Vault key → GITHUB_TOKEN (github.enabled)
 
 # House convention: worker node, CPU request only (no CPU limit), memory limited.
 nodeSelector:

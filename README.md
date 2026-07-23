@@ -46,6 +46,37 @@ skipped; only an unreachable Dependency-Track or a missing token is fatal.
 > user), stored in the OCI Vault key `securitybridge-dd-token`. This replaces the old
 > ORM token-minting — the whole reason the image can now be slim + version-decoupled.
 
+### GitHub Advanced Security → DefectDojo (`sync-github`)
+
+A second connector pulls the three GHAS surfaces into DefectDojo, so CodeQL, Dependabot
+and secret-scanning findings land in the same hub — with the same dedup, SLA and
+issue/notification fan-out — as everything else:
+
+| GHAS feed | Pulled as | Reimported as (DefectDojo) |
+| --- | --- | --- |
+| Code scanning (CodeQL, …) | SARIF (latest analysis) | `SARIF` |
+| Dependabot | REST alerts → transform | `Generic Findings Import` (test: *GHAS Dependabot*) |
+| Secret scanning | REST alerts → transform | `Generic Findings Import` (test: *GHAS secret scanning*) |
+
+Each repo becomes a DefectDojo **product**; the three feeds share one engagement, split
+by `test_title`. A surface that is disabled (or unscoped) is skipped, never an error.
+
+```sh
+docker run --rm \
+  -e GITHUB_TOKEN -e GITHUB_REPOS="MagmaMoose/chargate,MagmaMoose/diatreme" \
+  -e DEFECTDOJO_URL -e DEFECTDOJO_TOKEN \
+  ghcr.io/magmamoose/securitybridge:0.1.0 sync-github
+```
+
+Set `GITHUB_REPOS` (comma-separated `owner/repo`) **or** `GITHUB_ORG` to enumerate an
+org. In-cluster, enable the second CronJob with `--set github.enabled=true` (it reads
+`GITHUB_TOKEN` from the OCI Vault key `securitybridge-github-token`). The token needs
+read access to code scanning, Dependabot and secret-scanning alerts.
+
+> **Note on native connectors:** for a repo or two, DefectDojo's built-in GitHub import
+> is simpler. This connector earns its keep at scale — uniform repo→product mapping,
+> dedup, and the shared issue/Slack fan-out across every source.
+
 ## What & why
 
 Today a ~180-line `sync.py` lives **embedded in a Kubernetes ConfigMap** and runs
@@ -70,10 +101,10 @@ SecurityBridge fixes that:
 
 ```
  Dependency-Track ─┐
- SonarQube ────────┤                         ┌─→ DefectDojo (reimport-scan, dedupe, SLA)
- DAST (ZAP/Nuclei)─┤──▶  SecurityBridge  ────┤
- <future source> ──┘     (connectors +       └─→ GitHub Issues (zero-touch, High/Crit)
-                          scheduler + API)
+ GitHub Adv. Sec. ─┤                         ┌─→ DefectDojo (reimport-scan, dedupe, SLA)
+ SonarQube ────────┤──▶  SecurityBridge  ────┤
+ DAST (ZAP/Nuclei)─┤     (connectors +       └─→ GitHub Issues (zero-touch, High/Crit)
+ <future source> ──┘      scheduler + API)
 ```
 
 - **Sources** (Dependency-Track, SonarQube, …) are read-only connectors that pull
