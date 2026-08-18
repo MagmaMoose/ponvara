@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import httpx
 
-from securitybridge import __version__
+from ponvara import __version__
 
-_USER_AGENT = f"securitybridge/{__version__} (+https://github.com/MagmaMoose/securitybridge)"
+_USER_AGENT = f"ponvara/{__version__} (+https://github.com/MagmaMoose/ponvara)"
 
 
 class DependencyTrackClient:

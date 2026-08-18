@@ -1,4 +1,4 @@
-# SecurityBridge — Design
+# Ponvara — Design
 
 **Status:** Planning (Phase 0) · **Date:** 2026-07-22
 
@@ -6,7 +6,7 @@ Promote the in-cluster `dt-defectdojo-sync` CronJob (and its SonarQube sibling) 
 its own repo, container, and Helm chart — a long-lived, tested, versioned backend
 deployed separately via Flux — and generalize it into a **finding bus**. Scope is
 deliberately bounded: this does **not** widen [chargate](https://github.com/MagmaMoose/chargate)'s
-PR-time gate; SecurityBridge is the continuous/runtime counterpart.
+PR-time gate; Ponvara is the continuous/runtime counterpart.
 
 ---
 
@@ -66,7 +66,7 @@ enrichment layer** that sits beside DefectDojo:
 ```
  Dependency-Track ─┐
  SonarQube ────────┤                         ┌─→ DefectDojo (reimport-scan, dedupe, SLA)
- DAST (ZAP/Nuclei)─┤──▶  SecurityBridge  ────┤
+ DAST (ZAP/Nuclei)─┤──▶  Ponvara  ────┤
  <future source> ──┘     (connectors +       └─→ GitHub Issues (zero-touch, High/Crit)
                           scheduler + API)
 ```
@@ -101,7 +101,7 @@ DefectDojo REST API v2.** Replace the two ORM usages:
 
 | ORM usage today | REST replacement |
 | --- | --- |
-| Mint superuser token via `Token.objects` | **Provision one DefectDojo API token** (a dedicated `securitybridge` service user) once, store in OCI Vault. No ORM, no password. |
+| Mint superuser token via `Token.objects` | **Provision one DefectDojo API token** (a dedicated `ponvara` service user) once, store in OCI Vault. No ORM, no password. |
 | `Finding.objects.filter(...)` + `GITHUB_Issue.objects.create(...)` for dedupe | Query `GET /api/v2/findings/` (filter by product/severity/active); dedupe by writing a **finding tag** `gh-issue:<url>` (or a note) via `PATCH /api/v2/findings/{id}/`. State lives *in DefectDojo*, so the service stays stateless. |
 
 **Result:** run on a **slim `python:3.12-slim` image (~80 MB)**, fully **decoupled from
@@ -110,10 +110,10 @@ DefectDojo's version**. This alone removes the worst fragility.
 ### Repo layout
 
 ```
-securitybridge/
+ponvara/
   pyproject.toml                # uv; deps: httpx, pydantic-settings, apscheduler,
                                 #   fastapi+uvicorn, PyGithub (or raw httpx), prometheus-client
-  src/securitybridge/
+  src/ponvara/
     config.py                   # pydantic-settings: sources, schedules, thresholds, secret refs
     app.py                      # FastAPI: /healthz /readyz /metrics + POST /sync/{source}
     scheduler.py                # APScheduler: interval jobs per enabled source
@@ -124,14 +124,14 @@ securitybridge/
       github_issues.py          # zero-touch repo resolve + issue push (SINK)
     sync.py                     # orchestrator: for each source -> DefectDojo; then GH push
     models.py                   # typed Finding/Project DTOs
-  charts/securitybridge/        # Helm chart (below)
+  charts/ponvara/        # Helm chart (below)
   tests/                        # mirror modules 1:1 (pure connectors, injected HTTP)
   Dockerfile                    # slim, non-root, distroless-ish
   .github/workflows/            # ci.yml (ruff+pytest), release.yml (semantic-release + GHCR image)
 ```
 
 > **Phase 0 note.** The tree above is the *target*. Today the repo contains only this
-> design doc, `pyproject.toml` (an empty `0.0.0` package under `src/securitybridge/`),
+> design doc, `pyproject.toml` (an empty `0.0.0` package under `src/ponvara/`),
 > and the stub chart. The module files, Dockerfile, and workflows do not exist yet.
 
 ### Runtime shape — long-lived Deployment
@@ -143,7 +143,7 @@ A single **Deployment** (replicas: 1, `Recreate`) running `uvicorn`:
 - **HTTP surface:** `/healthz`, `/readyz`, `/metrics` (Prometheus), and
   `POST /sync/{source}` for on-demand runs (handy for testing + future DT webhooks).
 - **`concurrency: Forbid` semantics** via an in-process lock per source.
-- Emits metrics: `securitybridge_sync_findings_total{source}`,
+- Emits metrics: `ponvara_sync_findings_total{source}`,
   `..._github_issues_total`, `..._last_success_timestamp{source}`, `..._errors_total`.
 
 > Simpler alternative if a daemon isn't wanted: keep **CronJobs but from our own slim
@@ -152,13 +152,13 @@ A single **Deployment** (replicas: 1, `Recreate`) running `uvicorn`:
 > `mode: deployment|cronjob` value. **Recommendation: Deployment** — it's literally the
 > "long-lived backend" described here, and the incremental ops cost is tiny.
 
-### Helm chart (`charts/securitybridge/`)
+### Helm chart (`charts/ponvara/`)
 
 `values.yaml` sketch (the full stub lives in
-[`charts/securitybridge/values.yaml`](../charts/securitybridge/values.yaml)):
+[`charts/ponvara/values.yaml`](../charts/ponvara/values.yaml)):
 
 ```yaml
-image: { repository: ghcr.io/magmamoose/securitybridge, tag: "" }  # Flux ImagePolicy fills tag
+image: { repository: ghcr.io/magmamoose/ponvara, tag: "" }  # Flux ImagePolicy fills tag
 mode: deployment                 # or "cronjob"
 schedule: { dependencyTrack: "0 * * * *", sonarqube: "30 * * * *" }  # cron OR interval secs
 defectDojo:
@@ -172,7 +172,7 @@ sources:
 github: { minSeverity: High, maxIssuesPerRun: 50 }
 externalSecrets:                 # ESO -> OCI Vault (unchanged keys)
   store: oci-vault
-  keys: { dtrackApiKey: dependency-track-api-key, ddApiToken: securitybridge-dd-token,
+  keys: { dtrackApiKey: dependency-track-api-key, ddApiToken: ponvara-dd-token,
           githubTargets: github-issue-targets, sonarToken: defectdojo-api-key }
 resources: { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 256Mi } }
 serviceMonitor: { enabled: true }
@@ -188,15 +188,15 @@ rootfs, seccomp RuntimeDefault, no SA token).
 
 ### Deploy via Flux (mirror chargate/broker)
 
-- `infra/kubernetes/apps/securitybridge/{base,prod}/` with a `HelmRelease` pointing at
+- `infra/kubernetes/apps/ponvara/{base,prod}/` with a `HelmRelease` pointing at
   the chart (or a Flux `Kustomization` if the chart is vendored), an `ImagePolicy`
   autobumping the tag on each GHCR release, and the `ExternalSecret`s (reuse the
-  existing OCI Vault keys; add one new key: `securitybridge-dd-token`).
+  existing OCI Vault keys; add one new key: `ponvara-dd-token`).
 - Retire `kubernetes/apps/security-integrations/` once cut over.
 
 ### Image + release (mirror chargate)
 
-GHCR image `ghcr.io/magmamoose/securitybridge`, built by a `release.yml` that runs
+GHCR image `ghcr.io/magmamoose/ponvara`, built by a `release.yml` that runs
 python-semantic-release (version-from-commits) and a multi-arch `docker buildx` push —
 the exact pattern chargate already uses for its `broker` image. Flux's `ImagePolicy`
 rewrites the chart tag on publish. External GitHub Actions are **SHA-pinned** with a
@@ -209,7 +209,7 @@ rewrites the chart tag on publish. External GitHub Actions are **SHA-pinned** wi
 | Phase | Change | Risk | Reversible? |
 | --- | --- | --- | --- |
 | **0. Lift-and-shift** | New repo; move `sync.py` verbatim; add tests around the pure bits (target parsing, severity floor, issue body). Still the DefectDojo-image CronJob, still deployed from infra. | none | trivially |
-| **1. Slim the image** | Provision a `securitybridge` DefectDojo API token (OCI Vault); replace ORM token-mint with it; switch to `python:3.12-slim`. | low | keep old CronJob until green |
+| **1. Slim the image** | Provision a `ponvara` DefectDojo API token (OCI Vault); replace ORM token-mint with it; switch to `python:3.12-slim`. | low | keep old CronJob until green |
 | **2. Drop the ORM** | Replace `Finding`/`GITHUB_Issue` ORM with DefectDojo REST (`/findings/` + tag-based dedupe). Now fully version-decoupled from DefectDojo. | med (verify tag/note dedupe survives reimport) | run both in parallel one cycle |
 | **3. Long-lived service** | Convert to the FastAPI+APScheduler Deployment; add `/metrics`, `/sync/{source}`, ServiceMonitor; Helm chart; Flux app dir. Retire the infra CronJobs/ConfigMaps. | med | Flux rollback |
 | **4. Generalize** | Fold SonarQube in as a connector; document how a new source plugs in. Point future non-native sources (e.g. a bespoke DAST result shape) here; leave native-parser tools (Trivy Operator, Prowler, ZAP, Nuclei) pushing straight to DefectDojo. | low | per-connector toggle |
@@ -222,7 +222,7 @@ backend" and the reuse.
 
 ## 6. Open decisions
 
-1. **Name.** `securitybridge` (descriptive) — chosen, matching the sibling repos
+1. **Name.** `ponvara` (descriptive) — chosen, matching the sibling repos
    [draventis](https://github.com/MagmaMoose/draventis) and
    [security-platform](https://github.com/MagmaMoose/security-platform) under the
    MagmaMoose org.
@@ -242,8 +242,8 @@ backend" and the reuse.
 
 ## 7. First PR (crawl)
 
-Create `MagmaMoose/securitybridge` (this repo), `uv init`, drop `sync.py` in as
-`src/securitybridge/sync.py`, split the GitHub-target parsing + severity-floor logic
+Create `MagmaMoose/ponvara` (this repo), `uv init`, drop `sync.py` in as
+`src/ponvara/sync.py`, split the GitHub-target parsing + severity-floor logic
 into pure functions, add `tests/` for them, wire `ci.yml` (ruff + pytest). Keep the
 existing infra CronJob running untouched. That's Phase 0 — zero production risk, and it
 gives every later phase a tested base to refactor against.
@@ -253,7 +253,7 @@ gives every later phase a tested base to refactor against.
 ## Related work
 
 - **[MagmaMoose/chargate](https://github.com/MagmaMoose/chargate)** — PR-time SAST/SCA/IaC
-  gate (MegaLinter wrapper with net-new gating). SecurityBridge mirrors its conventions
+  gate (MegaLinter wrapper with net-new gating). Ponvara mirrors its conventions
   and `broker/` deploy pattern, and is the continuous/runtime counterpart to chargate's
   pre-merge gate.
 - **[MagmaMoose/draventis](https://github.com/MagmaMoose/draventis)** — scheduled DAST

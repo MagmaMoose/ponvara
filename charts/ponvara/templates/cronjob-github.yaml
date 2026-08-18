@@ -1,14 +1,14 @@
 # kics-scan ignore
 {{- if .Values.github.enabled }}
-# GitHub Advanced Security → DefectDojo sync (`securitybridge sync-github`).
+# GitHub Advanced Security → DefectDojo sync (`ponvara sync-github`).
 # Pulls code scanning (SARIF) + Dependabot + secret scanning for each configured
 # repo and reimports them into DefectDojo. Shares the ExternalSecret Secret with
 # the Dependency-Track sync (adds GITHUB_TOKEN when github.enabled).
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: {{ include "securitybridge.fullname" . }}-github
-  labels: {{- include "securitybridge.labels" . | nindent 4 }}
+  name: {{ include "ponvara.fullname" . }}-github
+  labels: {{- include "ponvara.labels" . | nindent 4 }}
 spec:
   schedule: {{ .Values.github.schedule | quote }}
   concurrencyPolicy: {{ .Values.concurrencyPolicy }}
@@ -21,7 +21,7 @@ spec:
       activeDeadlineSeconds: {{ .Values.activeDeadlineSeconds }}
       template:
         metadata:
-          labels: {{- include "securitybridge.selectorLabels" . | nindent 12 }}
+          labels: {{- include "ponvara.selectorLabels" . | nindent 12 }}
         spec:
           restartPolicy: Never
           automountServiceAccountToken: false
@@ -30,7 +30,7 @@ spec:
           {{- end }}
           securityContext: {{- toYaml .Values.podSecurityContext | nindent 12 }}
           containers:
-            - name: securitybridge
+            - name: ponvara
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
               imagePullPolicy: {{ .Values.image.pullPolicy }}
               args: ["sync-github"]
@@ -51,12 +51,12 @@ spec:
                 - name: GITHUB_TOKEN
                   valueFrom:
                     secretKeyRef:
-                      name: {{ include "securitybridge.fullname" . }}
+                      name: {{ include "ponvara.fullname" . }}
                       key: GITHUB_TOKEN
                 - name: DEFECTDOJO_TOKEN
                   valueFrom:
                     secretKeyRef:
-                      name: {{ include "securitybridge.fullname" . }}
+                      name: {{ include "ponvara.fullname" . }}
                       key: DEFECTDOJO_TOKEN
               resources: {{- toYaml .Values.resources | nindent 16 }}
 {{- end }}

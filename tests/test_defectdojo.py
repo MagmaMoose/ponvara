@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from securitybridge.defectdojo import DefectDojoClient
+from ponvara.defectdojo import DefectDojoClient
 
 
 def test_reimport_fpf_posts_multipart():

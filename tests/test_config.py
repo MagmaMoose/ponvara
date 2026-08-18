@@ -1,4 +1,4 @@
-from securitybridge.config import Config
+from ponvara.config import Config
 
 
 def test_config_defaults_and_env(monkeypatch):

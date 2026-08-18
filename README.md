@@ -1,4 +1,4 @@
-# SecurityBridge
+# Ponvara
 
 > **Status: Phase 1 — REST Dependency-Track → DefectDojo sync.** The core sync is
 > ported off the Django ORM onto the DefectDojo **REST API** (httpx) and runs on a
@@ -8,7 +8,7 @@
 > other Django-ORM user) is the next phase; the long-lived FastAPI service is later.
 > See [Running](#running-phase-1) and [`docs/DESIGN.md`](docs/DESIGN.md).
 
-SecurityBridge is a **finding bus**: a long-lived backend that pulls security
+Ponvara is a **finding bus**: a long-lived backend that pulls security
 findings from sources that can't push to [DefectDojo](https://github.com/DefectDojo/django-DefectDojo)
 themselves, **reimports** them into DefectDojo, and does the one cross-cutting thing
 DefectDojo can't do generically — **zero-touch GitHub-issue auto-push** for
@@ -25,25 +25,25 @@ Cluster (Helm — an hourly CronJob + ExternalSecret; DT key + a **provisioned**
 DefectDojo API token come from OCI Vault via External Secrets Operator):
 
 ```sh
-helm template securitybridge charts/securitybridge      # render/inspect
+helm template ponvara charts/ponvara      # render/inspect
 ```
 
 Container / locally (needs `DTRACK_API_KEY` + a provisioned `DEFECTDOJO_TOKEN`):
 
 ```sh
-docker build -t ghcr.io/magmamoose/securitybridge:0.1.0 .
+docker build -t ghcr.io/magmamoose/ponvara:0.1.0 .
 docker run --rm \
   -e DTRACK_API_URL -e DTRACK_API_KEY \
   -e DEFECTDOJO_URL -e DEFECTDOJO_TOKEN \
-  ghcr.io/magmamoose/securitybridge:0.1.0 sync
+  ghcr.io/magmamoose/ponvara:0.1.0 sync
 ```
 
-`securitybridge sync` reimports every active Dependency-Track project into DefectDojo
+`ponvara sync` reimports every active Dependency-Track project into DefectDojo
 once, then exits (the CronJob schedules it). Per-project failures are logged and
 skipped; only an unreachable Dependency-Track or a missing token is fatal.
 
 > **Phase 1 needs one new secret:** a **provisioned DefectDojo API token** (a service
-> user), stored in the OCI Vault key `securitybridge-dd-token`. This replaces the old
+> user), stored in the OCI Vault key `ponvara-dd-token`. This replaces the old
 > ORM token-minting — the whole reason the image can now be slim + version-decoupled.
 
 ### GitHub Advanced Security → DefectDojo (`sync-github`)
@@ -65,12 +65,12 @@ by `test_title`. A surface that is disabled (or unscoped) is skipped, never an e
 docker run --rm \
   -e GITHUB_TOKEN -e GITHUB_REPOS="MagmaMoose/chargate,MagmaMoose/diatreme" \
   -e DEFECTDOJO_URL -e DEFECTDOJO_TOKEN \
-  ghcr.io/magmamoose/securitybridge:0.1.0 sync-github
+  ghcr.io/magmamoose/ponvara:0.1.0 sync-github
 ```
 
 Set `GITHUB_REPOS` (comma-separated `owner/repo`) **or** `GITHUB_ORG` to enumerate an
 org. In-cluster, enable the second CronJob with `--set github.enabled=true` (it reads
-`GITHUB_TOKEN` from the OCI Vault key `securitybridge-github-token`). The token needs
+`GITHUB_TOKEN` from the OCI Vault key `ponvara-github-token`). The token needs
 read access to code scanning, Dependabot and secret-scanning alerts.
 
 > **Note on native connectors:** for a repo or two, DefectDojo's built-in GitHub import
@@ -87,7 +87,7 @@ chart upgrade forces a matching image bump so the ORM keeps matching the live DB
 schema. A security-critical integration deserves the same rigor as
 [MagmaMoose/chargate](https://github.com/MagmaMoose/chargate).
 
-SecurityBridge fixes that:
+Ponvara fixes that:
 
 - **A real repo** — Python 3.11+, uv + Ruff + pytest, full type hints, unit-tested
   pure connectors, CI, and semantic-release versioning (mirrors chargate's conventions).
@@ -102,7 +102,7 @@ SecurityBridge fixes that:
 ```
  Dependency-Track ─┐
  GitHub Adv. Sec. ─┤                         ┌─→ DefectDojo (reimport-scan, dedupe, SLA)
- SonarQube ────────┤──▶  SecurityBridge  ────┤
+ SonarQube ────────┤──▶  Ponvara  ────┤
  DAST (ZAP/Nuclei)─┤     (connectors +       └─→ GitHub Issues (zero-touch, High/Crit)
  <future source> ──┘      scheduler + API)
 ```
@@ -122,10 +122,10 @@ The single decision that unlocks everything. The legacy job reaches into DefectD
 
 | Django ORM usage today | REST replacement |
 | --- | --- |
-| Mint a superuser API token via `Token.objects.get_or_create` | Provision **one** DefectDojo API token for a dedicated `securitybridge` service user, once, stored in OCI Vault. No ORM, no password. |
+| Mint a superuser API token via `Token.objects.get_or_create` | Provision **one** DefectDojo API token for a dedicated `ponvara` service user, once, stored in OCI Vault. No ORM, no password. |
 | `Finding.objects.filter(...)` + `GITHUB_Issue.objects.create(...)` for dedupe | `GET /api/v2/findings/` (filter by product/severity/active); dedupe by writing a **finding tag** `gh-issue:<url>` via `PATCH /api/v2/findings/{id}/`. State lives **in DefectDojo**, so the service stays stateless. |
 
-**Result:** SecurityBridge runs on a **slim `python:3.12-slim` image (~80 MB)** and is
+**Result:** Ponvara runs on a **slim `python:3.12-slim` image (~80 MB)** and is
 **fully decoupled from DefectDojo's version** — DefectDojo chart upgrades no longer
 force a lockstep bump. This removes the biggest fragility of the current setup.
 
@@ -137,7 +137,7 @@ Full detail (risk + reversibility columns) in [`docs/DESIGN.md`](docs/DESIGN.md)
 | Phase | Change |
 | --- | --- |
 | **0. Lift-and-shift** | New repo; move `sync.py` verbatim; add tests around the pure bits (target parsing, severity floor, issue body). Still the DefectDojo-image CronJob, still deployed from infra. |
-| **1. Slim the image** | Provision a `securitybridge` DefectDojo API token (OCI Vault); replace the ORM token-mint with it; switch to `python:3.12-slim`. |
+| **1. Slim the image** | Provision a `ponvara` DefectDojo API token (OCI Vault); replace the ORM token-mint with it; switch to `python:3.12-slim`. |
 | **2. Drop the ORM** | Replace `Finding`/`GITHUB_Issue` ORM with the DefectDojo REST API (`/findings/` + tag-based dedupe). Now fully version-decoupled. |
 | **3. Long-lived service** | Convert to the FastAPI + APScheduler Deployment; add `/metrics`, `/sync/{source}`, ServiceMonitor; Helm chart; Flux app dir. Retire the infra CronJobs/ConfigMaps. |
 | **4. Generalize** | Fold SonarQube in as a connector; document how a new source plugs in. Point future non-native sources here; leave native-parser tools pushing straight to DefectDojo. |
@@ -148,33 +148,33 @@ backend and the reuse.
 
 ## Not yet implemented
 
-SecurityBridge has **no working code yet**. This repo currently contains only the
+Ponvara has **no working code yet**. This repo currently contains only the
 design doc, project scaffolding (`pyproject.toml`, an empty `0.0.0` package), and a
 stub Helm chart. Follow the [phased migration](#phased-migration) above — the first PR
 is Phase 0 (lift-and-shift `sync.py` with tests, zero production risk). The existing
-in-cluster CronJob keeps running untouched until SecurityBridge is cut over.
+in-cluster CronJob keeps running untouched until Ponvara is cut over.
 
 ## How it fits the security program
 
-SecurityBridge is the **runtime / continuous** half of the security tooling estate; it
+Ponvara is the **runtime / continuous** half of the security tooling estate; it
 complements the others rather than overlapping them:
 
 - **[MagmaMoose/chargate](https://github.com/MagmaMoose/chargate)** — the **PR-time**
   SAST/SCA/IaC gate (a MegaLinter wrapper with net-new gating). Chargate acts *before
-  merge* on a single PR; SecurityBridge acts *continuously* on deployed/portfolio-wide
+  merge* on a single PR; Ponvara acts *continuously* on deployed/portfolio-wide
   findings. Chargate already ships full SARIF to DefectDojo and BOMs to
-  Dependency-Track; SecurityBridge moves what those tools produce onward.
+  Dependency-Track; Ponvara moves what those tools produce onward.
 - **[MagmaMoose/draventis](https://github.com/MagmaMoose/draventis)** — scheduled DAST
   (ZAP + Nuclei) → DefectDojo. ZAP/Nuclei have native DefectDojo parsers, so draventis
   pushes straight to DefectDojo; if a bespoke DAST result shape ever needs
-  orchestration/enrichment, it becomes a SecurityBridge connector.
+  orchestration/enrichment, it becomes a Ponvara connector.
 - **[MagmaMoose/security-platform](https://github.com/MagmaMoose/security-platform)** —
   the program index and security-tooling roadmap that ties chargate, draventis,
-  SecurityBridge, DefectDojo, and Dependency-Track together.
+  Ponvara, DefectDojo, and Dependency-Track together.
 - **DefectDojo** (self-hosted, private infra repo) — the aggregation/dedupe/SLA system
-  of record. SecurityBridge is its **feeder** for sources that can't push themselves.
+  of record. Ponvara is its **feeder** for sources that can't push themselves.
 - **Dependency-Track** (self-hosted, private infra repo) — the SBOM/SCA source.
-  Dependency-Track has no "push to DefectDojo"; SecurityBridge pulls its FPF export and
+  Dependency-Track has no "push to DefectDojo"; Ponvara pulls its FPF export and
   reimports it. This is the original job the bus was born from.
 
 ## Conventions
