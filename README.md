@@ -164,12 +164,12 @@ complements the others rather than overlapping them:
   merge* on a single PR; SecurityBridge acts *continuously* on deployed/portfolio-wide
   findings. Chargate already ships full SARIF to DefectDojo and BOMs to
   Dependency-Track; SecurityBridge moves what those tools produce onward.
-- **[MagmaMoose/dastgate](https://github.com/MagmaMoose/dastgate)** — scheduled DAST
-  (ZAP + Nuclei) → DefectDojo. ZAP/Nuclei have native DefectDojo parsers, so dastgate
+- **[MagmaMoose/draventis](https://github.com/MagmaMoose/draventis)** — scheduled DAST
+  (ZAP + Nuclei) → DefectDojo. ZAP/Nuclei have native DefectDojo parsers, so draventis
   pushes straight to DefectDojo; if a bespoke DAST result shape ever needs
   orchestration/enrichment, it becomes a SecurityBridge connector.
 - **[MagmaMoose/security-platform](https://github.com/MagmaMoose/security-platform)** —
-  the program index and security-tooling roadmap that ties chargate, dastgate,
+  the program index and security-tooling roadmap that ties chargate, draventis,
   SecurityBridge, DefectDojo, and Dependency-Track together.
 - **DefectDojo** (self-hosted, private infra repo) — the aggregation/dedupe/SLA system
   of record. SecurityBridge is its **feeder** for sources that can't push themselves.

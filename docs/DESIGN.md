@@ -75,7 +75,7 @@ Not everything needs this bus — **Trivy Operator, Prowler, ZAP, Nuclei have na
 DefectDojo parsers** (see the
 [security-tooling roadmap](https://github.com/MagmaMoose/security-platform)), so those
 push straight to DefectDojo. Scheduled DAST is owned by
-[dastgate](https://github.com/MagmaMoose/dastgate), which uses those native parsers.
+[draventis](https://github.com/MagmaMoose/draventis), which uses those native parsers.
 The bus earns its keep for exactly the cases the current CronJob handles:
 
 - **Movement DefectDojo can't do itself** — Dependency-Track has no "push to
@@ -223,7 +223,7 @@ backend" and the reuse.
 ## 6. Open decisions
 
 1. **Name.** `securitybridge` (descriptive) — chosen, matching the sibling repos
-   [dastgate](https://github.com/MagmaMoose/dastgate) and
+   [draventis](https://github.com/MagmaMoose/draventis) and
    [security-platform](https://github.com/MagmaMoose/security-platform) under the
    MagmaMoose org.
 2. **ORM → REST?** Recommended **yes** (Phase 2) — it's the whole point (slim image,
@@ -256,7 +256,7 @@ gives every later phase a tested base to refactor against.
   gate (MegaLinter wrapper with net-new gating). SecurityBridge mirrors its conventions
   and `broker/` deploy pattern, and is the continuous/runtime counterpart to chargate's
   pre-merge gate.
-- **[MagmaMoose/dastgate](https://github.com/MagmaMoose/dastgate)** — scheduled DAST
+- **[MagmaMoose/draventis](https://github.com/MagmaMoose/draventis)** — scheduled DAST
   (ZAP + Nuclei) → DefectDojo via native parsers.
 - **[MagmaMoose/security-platform](https://github.com/MagmaMoose/security-platform)** —
   the program index and security-tooling roadmap.
