@@ -1,6 +1,6 @@
 import httpx
 
-from securitybridge.github import GitHubClient
+from ponvara.github import GitHubClient
 
 
 def _client(handler):

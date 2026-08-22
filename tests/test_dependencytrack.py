@@ -1,6 +1,6 @@
 import httpx
 
-from securitybridge.dependencytrack import DependencyTrackClient
+from ponvara.dependencytrack import DependencyTrackClient
 
 
 def test_projects_paginate_and_auth():

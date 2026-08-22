@@ -1,17 +1,17 @@
 """DefectDojo REST client (httpx): reimport a Dependency-Track FPF export.
 
 Uses a **provisioned** API token (no Django ORM token-minting), which is what lets
-securitybridge run on a slim image decoupled from DefectDojo's version.
+ponvara run on a slim image decoupled from DefectDojo's version.
 """
 
 from __future__ import annotations
 
 import httpx
 
-from securitybridge import __version__
+from ponvara import __version__
 
 FPF_SCAN_TYPE = "Dependency Track Finding Packaging Format (FPF) Export"
-_USER_AGENT = f"securitybridge/{__version__} (+https://github.com/MagmaMoose/securitybridge)"
+_USER_AGENT = f"ponvara/{__version__} (+https://github.com/MagmaMoose/ponvara)"
 
 
 class DefectDojoClient:

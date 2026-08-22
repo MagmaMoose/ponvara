@@ -1,6 +1,6 @@
 import json
 
-from securitybridge.sync_github import (
+from ponvara.sync_github import (
     dependabot_to_generic,
     run_github_sync,
     secret_scanning_to_generic,

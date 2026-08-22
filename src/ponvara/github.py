@@ -5,7 +5,7 @@ Pulls the three GHAS finding surfaces for a repository:
 * **code scanning** (CodeQL & friends) — fetched as **SARIF** from the latest
   analysis, so DefectDojo's first-class ``SARIF`` parser ingests it verbatim.
 * **Dependabot** alerts — the REST alert list (transformed to Generic Findings
-  Import by :mod:`securitybridge.sync_github`).
+  Import by :mod:`ponvara.sync_github`).
 * **secret scanning** alerts — the REST alert list (likewise transformed).
 
 Every call is failure-isolated at the feed level: a repo with a surface disabled
@@ -17,9 +17,9 @@ from __future__ import annotations
 
 import httpx
 
-from securitybridge import __version__
+from ponvara import __version__
 
-_USER_AGENT = f"securitybridge/{__version__} (+https://github.com/MagmaMoose/securitybridge)"
+_USER_AGENT = f"ponvara/{__version__} (+https://github.com/MagmaMoose/ponvara)"
 _API_VERSION = "2022-11-28"
 
 # GitHub returns these when a GHAS surface is disabled for the repo, or the token

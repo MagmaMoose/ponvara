@@ -1,7 +1,7 @@
-"""securitybridge CLI.
+"""ponvara CLI.
 
-    securitybridge sync          # Dependency-Track → DefectDojo (all projects)
-    securitybridge sync-github   # GitHub Advanced Security → DefectDojo (all repos)
+    ponvara sync          # Dependency-Track → DefectDojo (all projects)
+    ponvara sync-github   # GitHub Advanced Security → DefectDojo (all repos)
 
 Each command runs once and exits (the k8s CronJob schedules it). The long-lived
 service + scheduler + metrics are a later phase; see docs/DESIGN.md.
@@ -17,15 +17,15 @@ import logging
 
 import httpx
 
-from securitybridge import __version__
-from securitybridge.config import Config
-from securitybridge.defectdojo import DefectDojoClient
-from securitybridge.dependencytrack import DependencyTrackClient
-from securitybridge.github import GitHubClient
-from securitybridge.sync import run_sync
-from securitybridge.sync_github import run_github_sync
+from ponvara import __version__
+from ponvara.config import Config
+from ponvara.defectdojo import DefectDojoClient
+from ponvara.dependencytrack import DependencyTrackClient
+from ponvara.github import GitHubClient
+from ponvara.sync import run_sync
+from ponvara.sync_github import run_github_sync
 
-log = logging.getLogger("securitybridge")
+log = logging.getLogger("ponvara")
 
 
 def _run_dt_sync(config: Config) -> int:
@@ -104,8 +104,8 @@ def _run_github_sync(config: Config) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="securitybridge", description="Security finding bus.")
-    parser.add_argument("--version", action="version", version=f"securitybridge {__version__}")
+    parser = argparse.ArgumentParser(prog="ponvara", description="Security finding bus.")
+    parser.add_argument("--version", action="version", version=f"ponvara {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("sync", help="Sync all Dependency-Track projects into DefectDojo (once).")
     sub.add_parser(
@@ -113,7 +113,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    logging.basicConfig(level=logging.INFO, format="securitybridge: %(message)s")
+    logging.basicConfig(level=logging.INFO, format="ponvara: %(message)s")
     config = Config()
 
     if args.command == "sync":

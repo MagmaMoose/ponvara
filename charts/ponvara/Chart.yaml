@@ -1,5 +1,5 @@
 apiVersion: v2
-name: securitybridge
+name: ponvara
 description: >-
   REST Dependency-Track → DefectDojo sync (no Django ORM). Phase 1: an hourly
   CronJob that reimports every Dependency-Track project's findings into DefectDojo.
@@ -13,9 +13,9 @@ keywords:
   - defectdojo
   - dependency-track
   - finding-bus
-home: https://github.com/MagmaMoose/securitybridge
+home: https://github.com/MagmaMoose/ponvara
 sources:
-  - https://github.com/MagmaMoose/securitybridge
+  - https://github.com/MagmaMoose/ponvara
 maintainers:
   - name: Caleb Sargeant
     email: caleb@magmamoose.com

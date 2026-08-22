@@ -1,6 +1,6 @@
 import pytest
 
-from securitybridge.sync import run_sync
+from ponvara.sync import run_sync
 
 
 class FakeDT:
