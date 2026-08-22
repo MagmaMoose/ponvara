@@ -2,8 +2,8 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: {{ include "securitybridge.fullname" . }}
-  labels: {{- include "securitybridge.labels" . | nindent 4 }}
+  name: {{ include "ponvara.fullname" . }}
+  labels: {{- include "ponvara.labels" . | nindent 4 }}
 spec:
   schedule: {{ .Values.schedule | quote }}
   concurrencyPolicy: {{ .Values.concurrencyPolicy }}
@@ -16,7 +16,7 @@ spec:
       activeDeadlineSeconds: {{ .Values.activeDeadlineSeconds }}
       template:
         metadata:
-          labels: {{- include "securitybridge.selectorLabels" . | nindent 12 }}
+          labels: {{- include "ponvara.selectorLabels" . | nindent 12 }}
         spec:
           restartPolicy: Never
           automountServiceAccountToken: false
@@ -25,7 +25,7 @@ spec:
           {{- end }}
           securityContext: {{- toYaml .Values.podSecurityContext | nindent 12 }}
           containers:
-            - name: securitybridge
+            - name: ponvara
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
               imagePullPolicy: {{ .Values.image.pullPolicy }}
               args: ["sync"]
@@ -42,11 +42,11 @@ spec:
                 - name: DTRACK_API_KEY
                   valueFrom:
                     secretKeyRef:
-                      name: {{ include "securitybridge.fullname" . }}
+                      name: {{ include "ponvara.fullname" . }}
                       key: DTRACK_API_KEY
                 - name: DEFECTDOJO_TOKEN
                   valueFrom:
                     secretKeyRef:
-                      name: {{ include "securitybridge.fullname" . }}
+                      name: {{ include "ponvara.fullname" . }}
                       key: DEFECTDOJO_TOKEN
               resources: {{- toYaml .Values.resources | nindent 16 }}

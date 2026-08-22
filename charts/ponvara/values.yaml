@@ -1,7 +1,7 @@
 # =============================================================================
-# securitybridge — Helm values (Phase 1: REST Dependency-Track → DefectDojo sync)
+# ponvara — Helm values (Phase 1: REST Dependency-Track → DefectDojo sync)
 #
-# One hourly CronJob runs `securitybridge sync`: it reimports every Dependency-Track
+# One hourly CronJob runs `ponvara sync`: it reimports every Dependency-Track
 # project's findings into DefectDojo over the REST API (no Django ORM). Reads the
 # DT API key + a PROVISIONED DefectDojo API token from a Secret that External
 # Secrets Operator materialises from OCI Vault. Writes nothing to disk (read-only
@@ -12,7 +12,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 image:
-  repository: ghcr.io/magmamoose/securitybridge
+  repository: ghcr.io/magmamoose/ponvara
   tag: "" # defaults to Chart.appVersion; a Flux ImagePolicy can bump it
   pullPolicy: IfNotPresent
 
@@ -29,7 +29,7 @@ defectDojo:
   productType: "Dependency-Track"
   engagement: "Dependency Track"
 
-# GitHub Advanced Security → DefectDojo sync (`securitybridge sync-github`).
+# GitHub Advanced Security → DefectDojo sync (`ponvara sync-github`).
 # Disabled by default. When enabled, a second CronJob pulls code scanning (SARIF)
 # + Dependabot + secret scanning for the repos/org below into DefectDojo.
 github:
@@ -50,8 +50,8 @@ externalSecrets:
   storeKind: ClusterSecretStore
   refreshInterval: "1h"
   dtrackApiKeyRef: dependency-track-api-key # existing OCI Vault key → DTRACK_API_KEY
-  defectDojoTokenRef: securitybridge-dd-token # NEW OCI Vault key → DEFECTDOJO_TOKEN
-  githubTokenRef: securitybridge-github-token # OCI Vault key → GITHUB_TOKEN (github.enabled)
+  defectDojoTokenRef: ponvara-dd-token # NEW OCI Vault key → DEFECTDOJO_TOKEN
+  githubTokenRef: ponvara-github-token # OCI Vault key → GITHUB_TOKEN (github.enabled)
 
 # House convention: worker node, CPU request only (no CPU limit), memory limited.
 nodeSelector:

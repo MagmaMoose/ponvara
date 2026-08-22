@@ -1,4 +1,4 @@
-"""securitybridge — a finding bus between security sources and DefectDojo.
+"""ponvara — a finding bus between security sources and DefectDojo.
 
 Phase 1: the Dependency-Track → DefectDojo sync, ported out of the in-cluster
 ConfigMap script and **off the Django ORM** onto the DefectDojo REST API (so it
