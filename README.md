@@ -134,25 +134,31 @@ force a lockstep bump. This removes the biggest fragility of the current setup.
 Low-risk and reversible; each phase leaves the previous one running until it's green.
 Full detail (risk + reversibility columns) in [`docs/DESIGN.md`](docs/DESIGN.md).
 
-| Phase | Change |
-| --- | --- |
-| **0. Lift-and-shift** | New repo; move `sync.py` verbatim; add tests around the pure bits (target parsing, severity floor, issue body). Still the DefectDojo-image CronJob, still deployed from infra. |
-| **1. Slim the image** | Provision a `ponvara` DefectDojo API token (OCI Vault); replace the ORM token-mint with it; switch to `python:3.12-slim`. |
-| **2. Drop the ORM** | Replace `Finding`/`GITHUB_Issue` ORM with the DefectDojo REST API (`/findings/` + tag-based dedupe). Now fully version-decoupled. |
-| **3. Long-lived service** | Convert to the FastAPI + APScheduler Deployment; add `/metrics`, `/sync/{source}`, ServiceMonitor; Helm chart; Flux app dir. Retire the infra CronJobs/ConfigMaps. |
-| **4. Generalize** | Fold SonarQube in as a connector; document how a new source plugs in. Point future non-native sources here; leave native-parser tools pushing straight to DefectDojo. |
+| Phase | Change | Status |
+| --- | --- | --- |
+| **0. Lift-and-shift** | New repo; move `sync.py` verbatim; add tests around the pure bits (target parsing, severity floor, issue body). Still the DefectDojo-image CronJob, still deployed from infra. | ✅ DONE |
+| **1. Slim the image** | Provision a `ponvara` DefectDojo API token (OCI Vault); replace the ORM token-mint with it; switch to `python:3.12-slim`. Add GitHub Advanced Security sync. | ✅ DONE |
+| **2. Drop the ORM** | Replace `Finding`/`GITHUB_Issue` ORM with the DefectDojo REST API (`/findings/` + tag-based dedupe). Now fully version-decoupled. | 🔄 IN PROGRESS |
+| **3. Long-lived service** | Convert to the FastAPI + APScheduler Deployment; add `/metrics`, `/sync/{source}`, ServiceMonitor; Helm chart; Flux app dir. Retire the infra CronJobs/ConfigMaps. | 📋 TODO |
+| **4. Generalize** | Fold SonarQube in as a connector; document how a new source plugs in. Point future non-native sources here; leave native-parser tools pushing straight to DefectDojo. | 📋 TODO |
 
 You can stop after Phase 1 or 2 and already have a tested, reviewable, slim,
 version-decoupled job — most of the value is there. Phases 3–4 deliver the long-lived
 backend and the reuse.
 
-## Not yet implemented
+## What's implemented (Phase 1)
 
-Ponvara has **no working code yet**. This repo currently contains only the
-design doc, project scaffolding (`pyproject.toml`, an empty `0.0.0` package), and a
-stub Helm chart. Follow the [phased migration](#phased-migration) above — the first PR
-is Phase 0 (lift-and-shift `sync.py` with tests, zero production risk). The existing
-in-cluster CronJob keeps running untouched until Ponvara is cut over.
+**Core sync engine:**
+- Dependency-Track → DefectDojo via REST API (no Django ORM coupling)
+- GitHub Advanced Security → DefectDojo (code scanning, Dependabot, secret scanning)
+- Full test suite with mocked HTTP clients
+- Configuration via environment variables (pydantic-settings)
+- Helm chart with CronJob templates for both Dependency-Track and GitHub Advanced Security syncs
+
+**Next phases (TODO):**
+- Phase 2: ORM → REST API migration completion (tag-based dedup validation)
+- Phase 3: Long-lived FastAPI + APScheduler service with `/metrics`, `/sync/{source}` endpoints
+- Phase 4: SonarQube connector and generalized source plugin architecture
 
 ## How it fits the security program
 

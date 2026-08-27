@@ -1,6 +1,6 @@
 # Ponvara — Design
 
-**Status:** Planning (Phase 0) · **Date:** 2026-07-22
+**Status:** Phase 1 (REST Dependency-Track + GitHub Advanced Security → DefectDojo sync) · **Date:** 2026-08-27
 
 Promote the in-cluster `dt-defectdojo-sync` CronJob (and its SonarQube sibling) into
 its own repo, container, and Helm chart — a long-lived, tested, versioned backend
@@ -130,9 +130,11 @@ ponvara/
   .github/workflows/            # ci.yml (ruff+pytest), release.yml (semantic-release + GHCR image)
 ```
 
-> **Phase 0 note.** The tree above is the *target*. Today the repo contains only this
-> design doc, `pyproject.toml` (an empty `0.0.0` package under `src/ponvara/`),
-> and the stub chart. The module files, Dockerfile, and workflows do not exist yet.
+> **Phase 1 status.** The repo now contains a complete implementation of the
+> connector modules, full test coverage (pure connectors, HTTP-mocked), configuration
+> management, CLI (sync + sync-github commands), and the Helm chart (CronJob deployments).
+> Dockerfile and GitHub Actions workflows are in place. The long-lived FastAPI service
+> with APScheduler (Phase 3) and full generalization (Phase 4) remain future work.
 
 ### Runtime shape — long-lived Deployment
 
@@ -206,13 +208,13 @@ rewrites the chart tag on publish. External GitHub Actions are **SHA-pinned** wi
 
 ## 5. Migration plan (low-risk, phased)
 
-| Phase | Change | Risk | Reversible? |
-| --- | --- | --- | --- |
-| **0. Lift-and-shift** | New repo; move `sync.py` verbatim; add tests around the pure bits (target parsing, severity floor, issue body). Still the DefectDojo-image CronJob, still deployed from infra. | none | trivially |
-| **1. Slim the image** | Provision a `ponvara` DefectDojo API token (OCI Vault); replace ORM token-mint with it; switch to `python:3.12-slim`. | low | keep old CronJob until green |
-| **2. Drop the ORM** | Replace `Finding`/`GITHUB_Issue` ORM with DefectDojo REST (`/findings/` + tag-based dedupe). Now fully version-decoupled from DefectDojo. | med (verify tag/note dedupe survives reimport) | run both in parallel one cycle |
-| **3. Long-lived service** | Convert to the FastAPI+APScheduler Deployment; add `/metrics`, `/sync/{source}`, ServiceMonitor; Helm chart; Flux app dir. Retire the infra CronJobs/ConfigMaps. | med | Flux rollback |
-| **4. Generalize** | Fold SonarQube in as a connector; document how a new source plugs in. Point future non-native sources (e.g. a bespoke DAST result shape) here; leave native-parser tools (Trivy Operator, Prowler, ZAP, Nuclei) pushing straight to DefectDojo. | low | per-connector toggle |
+| Phase | Change | Status | Risk | Reversible? |
+| --- | --- | --- | --- | --- |
+| **0. Lift-and-shift** | New repo; move `sync.py` verbatim; add tests around the pure bits (target parsing, severity floor, issue body). Still the DefectDojo-image CronJob, still deployed from infra. | ✅ DONE | none | trivially |
+| **1. Slim the image** | Provision a `ponvara` DefectDojo API token (OCI Vault); replace ORM token-mint with it; switch to `python:3.12-slim`. Add GitHub Advanced Security sync (GHAS code scanning, Dependabot, secret scanning). | ✅ DONE | low | keep old CronJob until green |
+| **2. Drop the ORM** | Replace `Finding`/`GITHUB_Issue` ORM with DefectDojo REST (`/findings/` + tag-based dedupe). Now fully version-decoupled from DefectDojo. | 🔄 IN PROGRESS | med (verify tag/note dedupe survives reimport) | run both in parallel one cycle |
+| **3. Long-lived service** | Convert to the FastAPI+APScheduler Deployment; add `/metrics`, `/sync/{source}`, ServiceMonitor; Helm chart; Flux app dir. Retire the infra CronJobs/ConfigMaps. | 📋 TODO | med | Flux rollback |
+| **4. Generalize** | Fold SonarQube in as a connector; document how a new source plugs in. Point future non-native sources (e.g. a bespoke DAST result shape) here; leave native-parser tools (Trivy Operator, Prowler, ZAP, Nuclei) pushing straight to DefectDojo. | 📋 TODO | low | per-connector toggle |
 
 You can stop after Phase 1 or 2 and already have a tested, reviewable, slim,
 version-decoupled job — most of the value is there. Phases 3–4 deliver the "long-lived
