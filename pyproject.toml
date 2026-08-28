@@ -11,7 +11,7 @@ version = "0.1.0"
 description = "Finding bus: Dependency-Track → DefectDojo sync over the REST API (no Django ORM)."
 readme = "README.md"
 requires-python = ">=3.11"
-license = "MIT"
+license = "Apache-2.0"
 authors = [{ name = "Caleb Sargeant", email = "caleb@magmamoose.com" }]
 keywords = ["security", "defectdojo", "dependency-track", "finding-bus", "vulnerability-management"]
 dependencies = ["httpx", "pydantic-settings"]
