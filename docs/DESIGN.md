@@ -157,7 +157,7 @@ A single **Deployment** (replicas: 1, `Recreate`) running `uvicorn`:
 ### Helm chart (`charts/ponvara/`)
 
 `values.yaml` sketch (the full stub lives in
-[`charts/ponvara/values.yaml`](../charts/ponvara/values.yaml)):
+[`charts/ponvara/values.yaml`](https://github.com/MagmaMoose/ponvara/blob/main/charts/ponvara/values.yaml)):
 
 ```yaml
 image: { repository: ghcr.io/magmamoose/ponvara, tag: "" }  # Flux ImagePolicy fills tag

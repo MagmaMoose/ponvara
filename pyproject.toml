@@ -31,6 +31,15 @@ build-backend = "hatchling.build"
 packages = ["src/ponvara"]
 
 [dependency-groups]
+# Docs tooling (non-default group). The org-provisioned .github/workflows/docs.yml
+# builds with `uv run --group docs`, so this group is what makes that workflow work.
+docs = [
+  "mkdocs-material>=9.5",
+  # Transitive via mkdocs-material. Floor pinned so a future re-lock cannot resolve back
+  # under GHSA-gm37-52c6-37mw (high: ReDoS) or GHSA-9xwg-3r6f-jcx2 (medium: path
+  # traversal), both fixed in 11.0.1.
+  "pymdown-extensions>=11.0.1",
+]
 dev = ["pytest>=8", "ruff>=0.6"]
 
 [tool.ruff]
