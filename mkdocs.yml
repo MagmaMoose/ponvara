@@ -1,0 +1,14 @@
+INHERIT: mkdocs.base.yml
+site_name: Ponvara
+site_description: >-
+  A finding bus: pulls security findings from sources that cannot push to DefectDojo
+  themselves, reimports them, and auto-pushes High/Critical findings to GitHub issues.
+site_url: https://magmamoose.github.io/ponvara/
+repo_url: https://github.com/MagmaMoose/ponvara
+repo_name: MagmaMoose/ponvara
+edit_uri: edit/main/docs/
+
+nav:
+  - Home: index.md
+  - Design: DESIGN.md
+  - Roadmap: explanation/roadmap.md
