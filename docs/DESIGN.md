@@ -1,6 +1,7 @@
 # Ponvara — Design
 
-**Status:** Phase 1 (REST Dependency-Track + GitHub Advanced Security → DefectDojo sync) · **Date:** 2026-08-27
+**Status:** Phase 1 (REST Dependency-Track + GitHub Advanced Security → DefectDojo sync) ·
+**Date:** 2026-08-27
 
 Promote the in-cluster `dt-defectdojo-sync` CronJob (and its SonarQube sibling) into
 its own repo, container, and Helm chart — a long-lived, tested, versioned backend
@@ -63,7 +64,7 @@ That's the right call — and it unlocks a bigger idea below.
 Once it's a real service, generalize it slightly. It becomes the **orchestration +
 enrichment layer** that sits beside DefectDojo:
 
-```
+```text
  Dependency-Track ─┐
  SonarQube ────────┤                         ┌─→ DefectDojo (reimport-scan, dedupe, SLA)
  DAST (ZAP/Nuclei)─┤──▶  Ponvara  ────┤
@@ -109,7 +110,7 @@ DefectDojo's version**. This alone removes the worst fragility.
 
 ### Repo layout
 
-```
+```sh
 ponvara/
   pyproject.toml                # uv; deps: httpx, pydantic-settings, apscheduler,
                                 #   fastapi+uvicorn, PyGithub (or raw httpx), prometheus-client

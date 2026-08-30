@@ -14,6 +14,7 @@ ExternalSecret).
 ## Implemented
 
 **Core sync engine:**
+
 - Dependency-Track → DefectDojo via REST API (no Django ORM coupling)
 - GitHub Advanced Security → DefectDojo (code scanning, Dependabot, secret scanning)
 - Full test suite with mocked HTTP clients
@@ -21,6 +22,7 @@ ExternalSecret).
 - Helm chart with CronJob templates for both Dependency-Track and GitHub Advanced Security syncs
 
 **Next phases (TODO):**
+
 - Phase 2: ORM → REST API migration completion (tag-based dedup validation)
 - Phase 3: Long-lived FastAPI + APScheduler service with `/metrics`, `/sync/{source}` endpoints
 - Phase 4: SonarQube connector and generalized source plugin architecture
