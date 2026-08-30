@@ -14,7 +14,7 @@ module rather than a new CronJob.
 
 ## Architecture
 
-```
+```text
  Dependency-Track ─┐
  GitHub Adv. Sec. ─┤                         ┌─→ DefectDojo (reimport-scan, dedupe, SLA)
  SonarQube ────────┤──▶  Ponvara  ────┤
