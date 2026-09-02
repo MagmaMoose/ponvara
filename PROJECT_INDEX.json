@@ -1,0 +1,65 @@
+{
+  "name": "ponvara",
+  "version": "0.1.0",
+  "description": "Security finding bus: Dependency-Track and GitHub Advanced Security → DefectDojo over the REST API (no Django ORM).",
+  "language": "python",
+  "python_requires": ">=3.11",
+  "package_manager": "uv",
+  "entry_points": {
+    "cli": "ponvara"
+  },
+  "commands": {
+    "sync": "Pull all Dependency-Track projects and reimport findings into DefectDojo.",
+    "sync-github": "Pull GitHub Advanced Security findings (code scanning, Dependabot, secret scanning) for configured repos and reimport into DefectDojo."
+  },
+  "source_root": "src/ponvara",
+  "modules": {
+    "src/ponvara/__init__.py": "Package init; exposes __version__.",
+    "src/ponvara/__main__.py": "CLI (argparse): 'sync' and 'sync-github' commands.",
+    "src/ponvara/config.py": "pydantic-settings Config class; reads env vars / .env.",
+    "src/ponvara/defectdojo.py": "DefectDojoClient over httpx; reimport-scan endpoint.",
+    "src/ponvara/dependencytrack.py": "DependencyTrackClient over httpx; lists projects and exports FPF findings.",
+    "src/ponvara/github.py": "GitHubClient over httpx; GHAS code-scanning SARIF, Dependabot alerts, secret-scanning alerts.",
+    "src/ponvara/sync.py": "run_sync(): orchestrates Dependency-Track → DefectDojo sync.",
+    "src/ponvara/sync_github.py": "run_github_sync(): orchestrates GHAS → DefectDojo sync; transforms Dependabot/secret-scanning alerts to Generic Findings Import JSON."
+  },
+  "tests": {
+    "runner": "pytest",
+    "directory": "tests",
+    "files": [
+      "tests/test_config.py",
+      "tests/test_defectdojo.py",
+      "tests/test_dependencytrack.py",
+      "tests/test_github.py",
+      "tests/test_sync.py",
+      "tests/test_sync_github.py"
+    ]
+  },
+  "tooling": {
+    "linter": "ruff",
+    "formatter": "ruff format",
+    "docs": "mkdocs-material"
+  },
+  "deployment": {
+    "type": "kubernetes-cronjob",
+    "chart": "charts/ponvara",
+    "image_base": "python:3.12-slim",
+    "schedule": "hourly",
+    "secrets": "External Secrets Operator → OCI Vault"
+  },
+  "dependencies": {
+    "runtime": ["httpx", "pydantic-settings"],
+    "dev": ["pytest>=8", "ruff>=0.6"],
+    "docs": ["mkdocs-material>=9.5", "pymdown-extensions>=11.0.1"]
+  },
+  "related_repos": {
+    "draventis": "https://github.com/MagmaMoose/draventis",
+    "chargate": "https://github.com/MagmaMoose/chargate"
+  },
+  "phase": 1,
+  "not_yet_implemented": [
+    "Long-lived FastAPI service + APScheduler + Prometheus",
+    "GitHub-issue auto-push for High/Critical findings",
+    "SonarQube connector"
+  ]
+}
