@@ -22,13 +22,13 @@ module rather than a new CronJob.
  <future source> ──┘      scheduler + API)
 ```
 
-- **Sources** (Dependency-Track, SonarQube, …) are read-only connectors that pull
-  findings.
+- **Sources** (Dependency-Track, GitHub Advanced Security) are read-only connectors that
+  pull findings. SonarQube and additional sources are planned.
 - **Sinks** are DefectDojo (via `reimport-scan`) and GitHub Issues (zero-touch push).
-- A single long-lived **Deployment** runs an in-process **APScheduler** (replacing the
-  CronJobs) plus a small **FastAPI** surface: `/healthz`, `/readyz`, `/metrics`, and
-  `POST /sync/{source}` for on-demand runs (and a future "DT analysis finished →
-  sync now" webhook).
+- **Current phase:** CLI with `ponvara sync` and `ponvara sync-github` commands (CronJob-based).
+  Each command runs once and exits, scheduled via Kubernetes CronJob and Helm chart.
+- **Future phase:** a long-lived Deployment with in-process APScheduler plus FastAPI
+  surface (`/healthz`, `/readyz`, `/metrics`, `POST /sync/{source}` for on-demand runs).
 
 ## Why the REST API, not the Django ORM
 

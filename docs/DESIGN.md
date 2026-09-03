@@ -1,6 +1,6 @@
 # Ponvara — Design
 
-**Status:** Phase 1 (REST Dependency-Track + GitHub Advanced Security → DefectDojo sync) ·
+**Status:** Phase 1–2 (REST API slim image with GHAS; ORM → REST migration in progress) ·
 **Date:** 2026-08-27
 
 Promote the in-cluster `dt-defectdojo-sync` CronJob (and its SonarQube sibling) into
