@@ -38,11 +38,21 @@
   "tooling": {
     "linter": "ruff",
     "formatter": "ruff format",
-    "docs": "mkdocs-material"
+    "docs": "mkdocs-material",
+    "ci": {
+      "quality": "Brimyr patch-coverage gate (pull_request only)",
+      "security": "Chargate SAST / MegaLinter net-new gate (pull_request only)",
+      "release": "Diatreme versioning + container build/push to GHCR (pull_request + push to main)",
+      "docs": "tremvok mkdocs → Cloudflare Pages (docs paths on main; PRs build but do not publish)"
+    }
   },
   "deployment": {
     "type": "kubernetes-cronjob",
     "chart": "charts/ponvara",
+    "cronjobs": {
+      "cronjob.yaml": "ponvara sync — Dependency-Track → DefectDojo",
+      "cronjob-github.yaml": "ponvara sync-github — GitHub Advanced Security → DefectDojo"
+    },
     "image_base": "python:3.12-slim",
     "schedule": "hourly",
     "secrets": "External Secrets Operator → OCI Vault"
