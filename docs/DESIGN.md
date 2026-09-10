@@ -1,6 +1,6 @@
 # Ponvara — Design
 
-**Status:** Phase 1–2 (REST API slim image with GHAS; ORM → REST migration in progress) ·
+**Status:** Phase 1 complete (REST API slim image with Dependency-Track and GHAS syncs) ·
 **Date:** 2026-08-27
 
 Promote the in-cluster `dt-defectdojo-sync` CronJob (and its SonarQube sibling) into
@@ -116,14 +116,16 @@ ponvara/
                                 #   fastapi+uvicorn, PyGithub (or raw httpx), prometheus-client
   src/ponvara/
     config.py                   # pydantic-settings: sources, schedules, thresholds, secret refs
+    defectdojo.py               # REST client: reimport-scan (SINK) [Phase 1]
+    dependencytrack.py          # REST client: list projects, export FPF (SOURCE) [Phase 1]
+    github.py                   # REST client: pull GHAS findings (SOURCE) [Phase 1]
+    sync.py                     # orchestrator: DT → DefectDojo [Phase 1]
+    sync_github.py              # orchestrator: GHAS → DefectDojo [Phase 1]
+    # Future files (Phase 2+):
     app.py                      # FastAPI: /healthz /readyz /metrics + POST /sync/{source}
     scheduler.py                # APScheduler: interval jobs per enabled source
-    connectors/
-      dependencytrack.py        # list projects, export FPF            (SOURCE)
-      sonarqube.py              # pull findings                        (SOURCE)
-      defectdojo.py             # reimport-scan + findings query/tag   (SINK, REST)
-      github_issues.py          # zero-touch repo resolve + issue push (SINK)
-    sync.py                     # orchestrator: for each source -> DefectDojo; then GH push
+    github_issues.py            # zero-touch repo resolve + issue push (SINK) [Phase 2]
+    sonarqube.py                # REST client: pull findings (SOURCE) [Phase 4]
     models.py                   # typed Finding/Project DTOs
   charts/ponvara/        # Helm chart (below)
   tests/                        # mirror modules 1:1 (pure connectors, injected HTTP)
@@ -131,11 +133,11 @@ ponvara/
   .github/workflows/            # ci.yml (ruff+pytest), release.yml (semantic-release + GHCR image)
 ```
 
-> **Phase 1 status.** The repo now contains a complete implementation of the
-> connector modules, full test coverage (pure connectors, HTTP-mocked), configuration
-> management, CLI (sync + sync-github commands), and the Helm chart (CronJob deployments).
-> Dockerfile and GitHub Actions workflows are in place. The long-lived FastAPI service
-> with APScheduler (Phase 3) and full generalization (Phase 4) remain future work.
+> **Phase 1 status.** Complete. The repo contains the connector modules (Dependency-Track,
+> GitHub Advanced Security, DefectDojo), full test coverage (pure connectors, HTTP-mocked),
+> configuration management, CLI (sync + sync-github commands), and the Helm chart
+> (CronJob deployments). Dockerfile and GitHub Actions workflows are in place. Phase 2+
+> work (GitHub-issue push, long-lived service, generalization) remains future.
 
 ### Runtime shape — long-lived Deployment
 
@@ -213,7 +215,7 @@ rewrites the chart tag on publish. External GitHub Actions are **SHA-pinned** wi
 | --- | --- | --- | --- | --- |
 | **0. Lift-and-shift** | New repo; move `sync.py` verbatim; add tests around the pure bits (target parsing, severity floor, issue body). Still the DefectDojo-image CronJob, still deployed from infra. | ✅ DONE | none | trivially |
 | **1. Slim the image** | Provision a `ponvara` DefectDojo API token (OCI Vault); replace ORM token-mint with it; switch to `python:3.12-slim`. Add GitHub Advanced Security sync (GHAS code scanning, Dependabot, secret scanning). | ✅ DONE | low | keep old CronJob until green |
-| **2. Drop the ORM** | Replace `Finding`/`GITHUB_Issue` ORM with DefectDojo REST (`/findings/` + tag-based dedupe). Now fully version-decoupled from DefectDojo. | 🔄 IN PROGRESS | med (verify tag/note dedupe survives reimport) | run both in parallel one cycle |
+| **2. GitHub-issue push + tag-based dedupe** | Implement zero-touch GitHub-issue push for High/Critical findings (requires DefectDojo findings query + tag-based state in DefectDojo). Now fully version-decoupled from DefectDojo. | 📋 TODO | med (verify tag/note dedupe survives reimport) | run both in parallel one cycle |
 | **3. Long-lived service** | Convert to the FastAPI+APScheduler Deployment; add `/metrics`, `/sync/{source}`, ServiceMonitor; Helm chart; Flux app dir. Retire the infra CronJobs/ConfigMaps. | 📋 TODO | med | Flux rollback |
 | **4. Generalize** | Fold SonarQube in as a connector; document how a new source plugs in. Point future non-native sources (e.g. a bespoke DAST result shape) here; leave native-parser tools (Trivy Operator, Prowler, ZAP, Nuclei) pushing straight to DefectDojo. | 📋 TODO | low | per-connector toggle |
 
@@ -228,18 +230,17 @@ backend" and the reuse.
 1. **Name.** `ponvara` (descriptive) — chosen, matching the sibling repos
    [draventis](https://github.com/MagmaMoose/draventis) and
    [security-platform](https://github.com/MagmaMoose/security-platform) under the
-   MagmaMoose org.
-2. **ORM → REST?** Recommended **yes** (Phase 2) — it's the whole point (slim image,
-   version-decoupled). The only thing to validate is that **tag/note-based dedupe
-   survives `reimport-scan`** (reimport can recreate findings; confirm tags persist, or
-   dedupe on a stable finding hash instead).
-3. **Deployment vs CronJob-from-own-image.** "Long-lived backend" → **Deployment**. The
-   chart supports both, so this is reversible.
-4. **Dedup state:** stateless via DefectDojo tags (recommended) vs a tiny CNPG Postgres
-   the service owns (needed only if cross-source correlation/SLA is later tracked here).
-5. **Scope at launch:** DT + SonarQube + GitHub-issue push (parity), or go straight to
-   the generalized "finding bus". Recommendation: **parity first (Phases 0–3),
-   generalize in 4.**
+   MagmaMoose org. ✅ Resolved.
+2. **REST API** (Phase 1 decision) — chosen **yes**. Enables slim image, version-decoupled
+   from DefectDojo. Phase 1 confirmed this works. ✅ Resolved.
+3. **Tag/note-based dedupe for GitHub-issue push** (Phase 2) — recommended **yes**. Must
+   validate that **`reimport-scan` preserves finding tags** (if reimport recreates findings,
+   fall back to stable finding hash instead).
+4. **Deployment vs CronJob-from-own-image** (Phase 3) — "long-lived backend" → **Deployment**.
+   The chart supports both, so this is reversible.
+5. **Dedup state for phase 2+:** Stateless via DefectDojo tags (recommended) vs a tiny
+   CNPG Postgres the service owns (needed only if cross-source correlation/SLA is tracked
+   here later).
 
 ---
 

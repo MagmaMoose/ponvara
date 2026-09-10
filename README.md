@@ -4,16 +4,15 @@
 [![Docs](https://img.shields.io/badge/docs-ponvara-3f51b5)](https://magmamoose.github.io/ponvara/)
 [![License](https://img.shields.io/github/license/MagmaMoose/ponvara)](LICENSE)
 
-> **A finding bus: pull findings from sources that cannot reach DefectDojo, and push the
-> serious ones to GitHub issues.**
+> **A finding bus: pull findings from sources that cannot reach DefectDojo, and reimport
+> them.**
 
 ## What it is
 
 Ponvara pulls security findings from sources that cannot push to
-[DefectDojo](https://github.com/DefectDojo/django-DefectDojo) themselves, reimports them,
-and does the one cross-cutting thing DefectDojo cannot do generically: zero-touch
-GitHub-issue push for High and Critical findings, resolving the target repo by name
-across multiple GitHub accounts.
+[DefectDojo](https://github.com/DefectDojo/django-DefectDojo) themselves and reimports
+them. Zero-touch GitHub-issue push for High and Critical findings (future work) will
+resolve the target repo by name across multiple GitHub accounts.
 
 It promotes an existing, working-but-fragile in-cluster CronJob into a tested, versioned
 service, and generalises it so a new source is a new connector module rather than a new
@@ -45,9 +44,9 @@ first with `helm template ponvara charts/ponvara`.
 
 ## Status
 
-Phase 1: the Dependency-Track to DefectDojo sync, ported off the Django ORM onto the
-DefectDojo REST API. The GitHub-issue push and the long-lived FastAPI service are next.
-Maturity is claimed on the roadmap and nowhere else.
+Phase 1: Dependency-Track and GitHub Advanced Security syncs to DefectDojo, ported off
+the Django ORM onto the DefectDojo REST API. The long-lived FastAPI service and GitHub-issue
+push are Phase 2+ work. Maturity is claimed on the roadmap and nowhere else.
 
 ## Where it sits
 
