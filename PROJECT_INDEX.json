@@ -53,6 +53,11 @@
       "cronjob.yaml": "ponvara sync — Dependency-Track → DefectDojo",
       "cronjob-github.yaml": "ponvara sync-github — GitHub Advanced Security → DefectDojo"
     },
+    "chart_templates": {
+      "cronjob.yaml": "CronJob for ponvara sync (Dependency-Track → DefectDojo)",
+      "cronjob-github.yaml": "CronJob for ponvara sync-github (GHAS → DefectDojo)",
+      "externalsecret.yaml": "ExternalSecret pulling DTRACK_API_KEY, DEFECTDOJO_TOKEN, and GITHUB_TOKEN from OCI Vault via External Secrets Operator"
+    },
     "image_base": "python:3.12-slim",
     "schedule": "hourly",
     "secrets": "External Secrets Operator → OCI Vault"
