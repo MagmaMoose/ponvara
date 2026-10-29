@@ -9,5 +9,16 @@ edit_uri: edit/main/docs/
 
 nav:
   - Home: index.md
+  - Getting started:
+      - Prerequisites: getting-started/prerequisites.md
+      - Installation: getting-started/installation.md
+      - Quickstart: getting-started/quickstart.md
+  - Reference:
+      - CLI: reference/cli.md
+      - Configuration: reference/configuration.md
+      - Deployment: reference/deployment.md
   - Design: DESIGN.md
-  - Roadmap: explanation/roadmap.md
+  - Explanation:
+      - Roadmap: explanation/roadmap.md
+  - Contributing:
+      - Development: contributing/development.md
