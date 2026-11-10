@@ -2,13 +2,13 @@
 
 ## Via Helm chart (Kubernetes)
 
-This is the recommended method for production deployments.
+This is the recommended method for production deployments. The chart is not published to a Helm repository, so install it from a checkout.
 
-1. Add the MagmaMoose Helm repository (if not already added):
+1. Clone the repository:
 
    ```bash
-   helm repo add magmamoose https://magmamoose.github.io/helm-charts
-   helm repo update
+   git clone https://github.com/MagmaMoose/ponvara
+   cd ponvara
    ```
 
 2. Provision the required OCI Vault secrets (see [Prerequisites](prerequisites.md)):
@@ -18,12 +18,15 @@ This is the recommended method for production deployments.
 3. Install the chart:
 
    ```bash
-   helm install ponvara magmamoose/ponvara \
+   helm install ponvara charts/ponvara \
      --namespace security \
      --create-namespace \
-     --set defectDojo.url=https://defectdojo.magmamoose.com \
-     --set dependencyTrack.url=https://dtrack.magmamoose.com
+     --set image.tag=vX.Y.Z \
+     --set defectDojo.url=https://defectdojo.example.com \
+     --set dependencyTrack.url=https://dtrack.example.com
    ```
+
+   Set `image.tag` to a published release tag. The default is the chart's `appVersion`, which is not a published image tag.
 
 4. Verify the CronJob is created:
 
@@ -34,10 +37,10 @@ This is the recommended method for production deployments.
 
 ### Enabling GitHub Advanced Security sync
 
-To enable the GitHub Advanced Security sync, add the second CronJob:
+To enable the GitHub Advanced Security sync, provision `ponvara-github-token` in OCI Vault and add the second CronJob:
 
 ```bash
-helm install ponvara ... \
+helm upgrade ponvara charts/ponvara --namespace security --reuse-values \
   --set github.enabled=true \
   --set github.org=my-org
 ```
@@ -85,12 +88,12 @@ For development or testing locally:
 4. Run a sync:
 
    ```bash
-   ponvara sync
+   ponvara sync          # or: uv run ponvara sync
    ```
 
 ## Via Docker image
 
-The image is published to `ghcr.io/magmamoose/ponvara:latest`.
+The image is published to `ghcr.io/magmamoose/ponvara`, tagged `latest` and with each release version (`vX.Y.Z`). Its entrypoint is `ponvara` and its default command is `sync`; pass `sync-github` to run the GitHub sync instead.
 
 ```bash
 docker run \
@@ -98,18 +101,18 @@ docker run \
   -e DTRACK_API_KEY=<your-key> \
   -e DEFECTDOJO_URL=https://defectdojo.example.com \
   -e DEFECTDOJO_TOKEN=<your-token> \
-  ghcr.io/magmamoose/ponvara:latest \
-  ponvara sync
+  ghcr.io/magmamoose/ponvara:latest
 ```
 
 ## Verification
 
 After installation, verify the setup by checking:
 
-1. The CronJob runs successfully:
+1. A run succeeds. Start one now instead of waiting for the schedule:
 
    ```bash
-   kubectl logs -n security -l app=ponvara --tail=50
+   kubectl create job --from=cronjob/ponvara ponvara-first-run -n security
+   kubectl logs -n security job/ponvara-first-run --follow
    ```
 
 2. Findings appear in DefectDojo in the reimported products.

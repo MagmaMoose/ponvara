@@ -51,10 +51,10 @@ docker run \
   -e DTRACK_API_KEY=<key> \
   -e DEFECTDOJO_URL=https://defectdojo.example.com \
   -e DEFECTDOJO_TOKEN=<token> \
-  ponvara:dev ponvara sync
+  ponvara:dev
 ```
 
-The Dockerfile builds on `python:3.12-slim` (~80 MB) and installs dependencies with `uv`.
+The Dockerfile builds on `python:3.12-slim` (~80 MB) and installs the package with `pip`. The entrypoint is `ponvara` and the default command is `sync`.
 
 ## Running against live services
 
@@ -102,7 +102,7 @@ To test against actual Dependency-Track and DefectDojo instances:
 Follow the house conventions:
 
 - **Branch naming:** `type/category/description` (e.g., `feat/sync/add-sonarqube-connector`)
-- **Commit messages:** semantic-release format (`feat(sync): add SonarQube connector`)
+- **Commit messages:** Conventional Commits (`feat(sync): add SonarQube connector`)
 - **Code style:** Ruff formatting (run `uv run ruff format` before committing)
 - **Type hints:** Full type annotations on all functions
 - **Tests:** Every feature must have a passing test

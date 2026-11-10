@@ -25,7 +25,7 @@ image:
 schedule: "0 * * * *" # hourly for Dependency-Track sync
 
 concurrencyPolicy: Forbid # only one pod at a time
-backoffLimit: 1 # don't retry failed pods
+backoffLimit: 1 # retry a failed pod once
 activeDeadlineSeconds: 1800 # kill pods that run longer than 30 minutes
 
 dependencyTrack:
@@ -103,17 +103,12 @@ If a sync pod crashes or gets stuck:
    kubectl logs -n security <pod-name>
    ```
 
-2. The pod will not be retried (`backoffLimit: 1`), but the next scheduled run will proceed.
+2. A failed pod is retried once (`backoffLimit: 1`). If the retry fails too, the Job fails and the next scheduled run proceeds.
 
-3. If you need to force an immediate manual sync, run the image as a one-shot:
+3. If you need to force an immediate manual sync, start a Job from the CronJob. It reuses the CronJob's image, environment and Secret:
 
    ```bash
-   kubectl run -it --rm \
-     -e DTRACK_API_KEY=$DTRACK_API_KEY \
-     -e DEFECTDOJO_TOKEN=$DEFECTDOJO_TOKEN \
-     --image=ghcr.io/magmamoose/ponvara:0.1.0 \
-     ponvara-manual \
-     -- ponvara sync
+   kubectl create job --from=cronjob/ponvara ponvara-manual -n security
    ```
 
 ## Monitoring and observability
@@ -122,17 +117,18 @@ Phase 1 has no built-in metrics. Future phases (Phase 3+) will add:
 
 - Prometheus metrics (`/metrics` endpoint)
 - ServiceMonitor for integration with Prometheus
-- Health checks (`/health`)
+- Health checks (`/healthz`, `/readyz`)
 
 For now, monitoring is via pod logs and DefectDojo's audit trail.
 
 ## Upgrading the chart
 
-To upgrade Ponvara to a new version:
+To upgrade Ponvara to a new version, update your checkout and upgrade the release:
 
 ```bash
-helm repo update magmamoose
-helm upgrade ponvara magmamoose/ponvara --namespace security
+git pull
+helm upgrade ponvara charts/ponvara --namespace security --reuse-values \
+  --set image.tag=vX.Y.Z
 ```
 
 The next scheduled run will pick up the new image. No downtime (pods are stateless).

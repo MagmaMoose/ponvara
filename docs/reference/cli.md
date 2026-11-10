@@ -32,7 +32,7 @@ Requires `GITHUB_TOKEN` and `DEFECTDOJO_TOKEN`. Must also set either `GITHUB_REP
 
 Exit codes:
 - `0` — success or skipped repositories
-- `1` — setup/fatal error (missing token, no repos configured)
+- `1` — setup/fatal error (missing token, no repos configured, or the organization's repository list cannot be fetched)
 
 ### Global options
 

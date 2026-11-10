@@ -13,3 +13,6 @@ build/
 
 # OS / editor
 .DS_Store
+
+# MkDocs build output
+site/

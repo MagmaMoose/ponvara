@@ -10,53 +10,56 @@ Get a Dependency-Track to DefectDojo sync running in 5 minutes.
 
 ## Step 1: Provision the DefectDojo token
 
-If you don't already have one, create a new service-user API token in DefectDojo:
+If you don't already have one:
 
-1. Go to DefectDojo **Admin → Users**.
-2. Click **Add User**.
-3. Set the username to `ponvara` and mark it as an **API user**.
-4. Copy the token that DefectDojo generates.
-5. Store it in OCI Vault under the key `ponvara-dd-token`.
+1. Create a dedicated DefectDojo user for Ponvara, allowed to create products and engagements and to import scans.
+2. Copy that user's API v2 key.
+3. Store it in OCI Vault under the key `ponvara-dd-token`.
 
 ## Step 2: Install via Helm
 
-```bash
-helm repo add magmamoose https://magmamoose.github.io/helm-charts
-helm repo update
+The chart is not published to a Helm repository, so install it from a checkout:
 
-helm install ponvara magmamoose/ponvara \
+```bash
+git clone https://github.com/MagmaMoose/ponvara
+cd ponvara
+
+helm install ponvara charts/ponvara \
   --namespace security \
   --create-namespace \
+  --set image.tag=vX.Y.Z \
   --set defectDojo.url=https://defectdojo.example.com \
   --set dependencyTrack.url=https://dtrack.example.com
 ```
 
-The chart assumes your OCI Vault keys are provisioned. If they're not, the pods will fail to start with a vault error.
+Set `image.tag` to a published release tag; the chart's default (its `appVersion`) is not one. The chart assumes your OCI Vault keys are provisioned. If they're not, the ExternalSecret cannot create the Secret and the job's pods fail to start.
 
 ## Step 3: Verify
 
-Wait a moment for the CronJob to schedule, then check the logs:
+Start a run now instead of waiting for the hourly schedule, then read its log:
 
 ```bash
-kubectl logs -n security -l app=ponvara --tail=50
+kubectl create job --from=cronjob/ponvara ponvara-first-run -n security
+kubectl logs -n security job/ponvara-first-run --follow
 ```
 
 You should see lines like:
 
 ```text
-ponvara: syncing Dependency-Track projects to DefectDojo
-ponvara: project_1: created product in DefectDojo
-ponvara: done
+ponvara: found 2 active Dependency-Track project(s)
+ponvara: [my-service (1.4.0)] imported into DefectDojo
+ponvara: [my-library] imported into DefectDojo
+ponvara: done: 2 synced, 0 skipped
 ```
 
 Then check DefectDojo: a new product should have appeared for each Dependency-Track project, with findings reimported.
 
 ## (Optional) Enable GitHub Advanced Security sync
 
-Add the second CronJob:
+Provision `ponvara-github-token` in OCI Vault, then add the second CronJob:
 
 ```bash
-helm upgrade ponvara magmamoose/ponvara \
+helm upgrade ponvara charts/ponvara --namespace security --reuse-values \
   --set github.enabled=true \
   --set github.org=my-org
 ```
@@ -73,14 +76,15 @@ Ponvara will now run `sync-github` every 6 hours (or set `github.schedule` to ch
 
 **Pod fails to start:**
 - Check that your OCI Vault keys (`dependency-track-api-key`, `ponvara-dd-token`) are provisioned.
-- Run `kubectl describe pod -n security` and look for vault-related errors.
+- Run `kubectl get externalsecret -n security` and `kubectl describe pod -n security -l app.kubernetes.io/name=ponvara`, and look for secret errors.
 
 **No findings appear in DefectDojo:**
 - Check that Dependency-Track has projects with findings.
-- Check the pod logs: `kubectl logs -n security -l app=ponvara`.
-- Verify the DefectDojo service is reachable from the cluster: `kubectl run --rm -it --image=curlimages/curl -l app=test -- curl http://defectdojo-django.security.svc.cluster.local/health/`.
+- Check the pod logs: `kubectl logs -n security -l app.kubernetes.io/name=ponvara`.
+- Verify the DefectDojo service is reachable from the cluster: `kubectl run curl-test -n security --rm -it --restart=Never --image=curlimages/curl -- curl -sI http://defectdojo-django.security.svc.cluster.local/`.
 
 **Wrong URL or token:**
-- Edit the Helm values and re-run `helm upgrade ponvara magmamoose/ponvara --set ...`.
+- URLs: re-run `helm upgrade ponvara charts/ponvara --namespace security --reuse-values --set ...`.
+- Tokens: update the key in OCI Vault. The ExternalSecret refreshes it within an hour (`externalSecrets.refreshInterval`).
 
 For more, see [Configuration](../reference/configuration.md) and [CLI reference](../reference/cli.md).

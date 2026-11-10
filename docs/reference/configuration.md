@@ -2,7 +2,7 @@
 
 <!-- sources: src/ponvara/config.py, charts/ponvara/values.yaml -->
 
-Ponvara reads configuration from environment variables. In Kubernetes, these come from an ExternalSecret that pulls from OCI Vault.
+Ponvara reads configuration from environment variables. In Kubernetes, the chart sets them from its values, and the secrets come from an ExternalSecret that pulls from OCI Vault.
 
 ## Environment variables
 
@@ -14,7 +14,7 @@ Ponvara reads configuration from environment variables. In Kubernetes, these com
 | `DEFECTDOJO_TOKEN` | string | (empty) | **yes** | DefectDojo API token. Required for `ponvara sync` and `ponvara sync-github`. Must be provisioned in advance (not minted at runtime). |
 | `DD_PRODUCT_TYPE` | string | `Dependency-Track` | no | DefectDojo product type for Dependency-Track findings. |
 | `DD_ENGAGEMENT` | string | `Dependency Track` | no | DefectDojo engagement name for Dependency-Track findings. |
-| `DD_SITE_URL` | string | `https://defectdojo.magmamoose.com` | no | The site URL for DefectDojo (used in finding context). |
+| `DD_SITE_URL` | string | `https://defectdojo.magmamoose.com` | no | Not read by any command yet. |
 | `GITHUB_API_URL` | string | `https://api.github.com` | no | GitHub API base URL. Use for self-hosted GitHub Enterprise. |
 | `GITHUB_TOKEN` | string | (empty) | yes (if using `sync-github`) | GitHub personal access token. Required for `ponvara sync-github`. |
 | `GITHUB_REPOS` | string | (empty) | no | Explicit comma-separated list of repositories (e.g., `owner/repo,owner/repo2`). Takes precedence over `GITHUB_ORG`. |
@@ -33,13 +33,13 @@ Configuration is loaded from `.env` file first (if present), then environment va
 The Ponvara Helm chart sets defaults for the CronJob. See the [values.yaml](https://github.com/MagmaMoose/ponvara/blob/main/charts/ponvara/values.yaml) in the repository for the complete configuration, including:
 
 - CronJob schedule (hourly for Dependency-Track, every 6 hours for GitHub)
-- Resource requests and limits (50m CPU, 128Mi memory)
+- Requests of 50m CPU and 128Mi memory, and a 256Mi memory limit
 - Security context (non-root, no privilege escalation, read-only filesystem)
 - ExternalSecret references to OCI Vault
 
 ## Secrets handling
 
-All secret values (`DTRACK_API_KEY`, `DEFECTDOJO_TOKEN`, `GITHUB_TOKEN`) are sourced from OCI Vault via ExternalSecrets Operator. The `defectDojo` token **must be provisioned in advance** as a DefectDojo service user — Ponvara does not mint tokens.
+All secret values (`DTRACK_API_KEY`, `DEFECTDOJO_TOKEN`, `GITHUB_TOKEN`) are sourced from OCI Vault via ExternalSecrets Operator. The DefectDojo token **must be provisioned in advance** as a DefectDojo service user — Ponvara does not mint tokens.
 
 ## Example: Docker
 
@@ -48,9 +48,10 @@ docker run -e DTRACK_API_URL=https://dtrack.example.com \
   -e DTRACK_API_KEY=<your-key> \
   -e DEFECTDOJO_URL=https://defectdojo.example.com \
   -e DEFECTDOJO_TOKEN=<your-token> \
-  ghcr.io/magmamoose/ponvara:0.1.0 \
-  ponvara sync
+  ghcr.io/magmamoose/ponvara:latest
 ```
+
+The image's default command is `sync`; pass `sync-github` to run the GitHub sync.
 
 ## Example: Kubernetes (via Helm)
 
@@ -58,8 +59,9 @@ The Helm chart configures ExternalSecrets to pull secrets from OCI Vault:
 
 ```bash
 helm install ponvara charts/ponvara \
+  --set image.tag=vX.Y.Z \
   --set defectDojo.url=https://defectdojo.example.com \
   --set dependencyTrack.url=https://dtrack.example.com
 ```
 
-The chart's ExternalSecret references read `dependency-track-api-key` and `ponvara-dd-token` from OCI Vault.
+The chart's ExternalSecret reads `dependency-track-api-key` and `ponvara-dd-token` from OCI Vault, plus `ponvara-github-token` when `github.enabled` is true.
