@@ -49,7 +49,7 @@ backend and the reuse.
 Unresolved questions for future phases. Each should become an ADR with
 `Status: Proposed` once it has a shape.
 
-Tracked in [`../DESIGN.md § Open decisions`](../DESIGN.md#open-decisions):
+Tracked in [`../DESIGN.md § Open decisions`](../DESIGN.md#6-open-decisions):
 
 1. **Tag-based dedup for GitHub push** (Phase 2). Recommended: validate that
    `reimport-scan` preserves finding tags so GitHub-issue dedup can use them; fall back to
