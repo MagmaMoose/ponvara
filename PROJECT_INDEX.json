@@ -76,5 +76,32 @@
     "Long-lived FastAPI service + APScheduler + Prometheus",
     "GitHub-issue auto-push for High/Critical findings",
     "SonarQube connector"
+  ],
+  "generated": "2026-11-11",
+  "callgraph_highlights": [
+    {
+      "caller": "src/ponvara/__main__.py:main",
+      "calls": ["src/ponvara/sync.py:run_sync", "src/ponvara/sync_github.py:run_github_sync"],
+      "note": "CLI entry point; dispatches on subcommand"
+    },
+    {
+      "caller": "src/ponvara/sync.py:run_sync",
+      "calls": ["src/ponvara/dependencytrack.py:DependencyTrackClient", "src/ponvara/defectdojo.py:DefectDojoClient"],
+      "note": "list_projects → export_findings (FPF) → reimport_scan"
+    },
+    {
+      "caller": "src/ponvara/sync_github.py:run_github_sync",
+      "calls": ["src/ponvara/github.py:GitHubClient", "src/ponvara/defectdojo.py:DefectDojoClient"],
+      "note": "SARIF / Dependabot / secret-scanning alerts → transform → reimport_scan"
+    }
+  ],
+  "hotspots": [
+    "src/ponvara/sync_github.py",
+    "src/ponvara/github.py",
+    "src/ponvara/defectdojo.py",
+    "src/ponvara/config.py",
+    "src/ponvara/sync.py",
+    "src/ponvara/__main__.py",
+    "charts/ponvara/templates/externalsecret.yaml"
   ]
 }
