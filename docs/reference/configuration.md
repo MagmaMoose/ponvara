@@ -39,7 +39,7 @@ The Ponvara Helm chart sets defaults for the CronJob. See the [values.yaml](http
 
 ## Secrets handling
 
-All secret values (`DTRACK_API_KEY`, `DEFECTDOJO_TOKEN`, `GITHUB_TOKEN`) are sourced from OCI Vault via ExternalSecrets Operator. The DefectDojo token **must be provisioned in advance** as a DefectDojo service user — Ponvara does not mint tokens.
+All secret values (`DTRACK_API_KEY`, `DEFECTDOJO_TOKEN`, `GITHUB_TOKEN`) are sourced from OCI Vault via ExternalSecrets Operator. The DefectDojo token **must be provisioned in advance** as a DefectDojo service user: Ponvara does not mint tokens.
 
 ## Example: Docker
 

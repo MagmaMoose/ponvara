@@ -1,5 +1,7 @@
 # Prerequisites
 
+<!-- sources: src/ponvara/config.py, pyproject.toml, charts/ponvara -->
+
 ## Runtime
 
 - **Python 3.11 or later** (for running from source; the container image uses Python 3.12-slim)
@@ -7,9 +9,9 @@
 
 ## Services
 
-- **Dependency-Track** — for `ponvara sync`
-- **DefectDojo** — the sink for every command
-- **GitHub** (cloud or self-hosted) — for `ponvara sync-github`
+- **Dependency-Track** (for `ponvara sync`)
+- **DefectDojo** (the sink for every command)
+- **GitHub** (cloud or self-hosted) for `ponvara sync-github`
 
 ## Credentials and provisioning
 
@@ -21,8 +23,8 @@ Before running Ponvara, provision the required credentials:
 
 ### DefectDojo
 
-- A **provisioned DefectDojo API v2 key** for a dedicated user. Create the user in DefectDojo and copy its API v2 key. Ponvara does not mint tokens.
-- That user must be allowed to create products and engagements and to import scans: Ponvara calls `reimport-scan` with `auto_create_context`.
+- A **provisioned DefectDojo API v2 key** for a dedicated user (create the user in DefectDojo and copy its API v2 key; Ponvara does not mint tokens).
+- That user must be allowed to create products and engagements and to import scans. Ponvara calls `reimport-scan` with `auto_create_context`.
 
 ### GitHub (optional, only for `ponvara sync-github`)
 
@@ -35,9 +37,9 @@ When deploying via Helm chart:
 
 - **ExternalSecrets Operator** must be installed and configured with a ClusterSecretStore pointing to OCI Vault (or another secret store).
 - Vault keys must be provisioned before the chart is deployed:
-  - `dependency-track-api-key` — the Dependency-Track API key
-  - `ponvara-dd-token` — the DefectDojo service-user API token
-  - `ponvara-github-token` — the GitHub token (only required if `github.enabled=true`)
+  - `dependency-track-api-key`: the Dependency-Track API key
+  - `ponvara-dd-token`: the DefectDojo service-user API token
+  - `ponvara-github-token`: the GitHub token (only required if `github.enabled=true`)
 
 ## Network
 

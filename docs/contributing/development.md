@@ -1,12 +1,14 @@
 # Local development
 
+<!-- sources: pyproject.toml, Dockerfile, .github/workflows, tests/ -->
+
 Set up a development environment to run tests and build Ponvara from source.
 
 ## Prerequisites
 
 - **Python 3.11 or later**
 - **Git**
-- **uv** (package and environment manager) — install from [astral.sh/uv](https://astral.sh/uv)
+- **uv** (package and environment manager; install from [astral.sh/uv](https://astral.sh/uv))
 
 ## Clone and install
 
@@ -88,14 +90,14 @@ To test against actual Dependency-Track and DefectDojo instances:
 
 ## Code structure
 
-- `src/ponvara/__main__.py` — CLI entry point and argument parsing
-- `src/ponvara/config.py` — environment variable loading (pydantic-settings)
-- `src/ponvara/defectdojo.py` — DefectDojo REST API client
-- `src/ponvara/dependencytrack.py` — Dependency-Track API client
-- `src/ponvara/github.py` — GitHub API client
-- `src/ponvara/sync.py` — core logic for Dependency-Track sync
-- `src/ponvara/sync_github.py` — core logic for GitHub Advanced Security sync
-- `tests/` — test suite with mocked HTTP responses
+- `src/ponvara/__main__.py`: CLI entry point and argument parsing
+- `src/ponvara/config.py`: environment variable loading (pydantic-settings)
+- `src/ponvara/defectdojo.py`: DefectDojo REST API client
+- `src/ponvara/dependencytrack.py`: Dependency-Track API client
+- `src/ponvara/github.py`: GitHub API client
+- `src/ponvara/sync.py`: core logic for Dependency-Track sync
+- `src/ponvara/sync_github.py`: core logic for GitHub Advanced Security sync
+- `tests/`: test suite with mocked HTTP responses
 
 ## Contributing
 

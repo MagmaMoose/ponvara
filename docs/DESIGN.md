@@ -1,11 +1,13 @@
-# Ponvara — Design
+# Ponvara Design
+
+<!-- sources: src/ponvara, charts/ponvara -->
 
 **Status:** Phase 1 complete (REST API slim image with Dependency-Track and GHAS syncs) ·
 **Date:** 2026-08-27
 
 Promote the in-cluster `dt-defectdojo-sync` CronJob (and its SonarQube sibling) into
-its own repo, container, and Helm chart — a long-lived, tested, versioned backend
-deployed separately via Flux — and generalize it into a **finding bus**. Scope is
+its own repo, container, and Helm chart (a long-lived, tested, versioned backend
+deployed separately via Flux) and generalize it into a **finding bus**. Scope is
 deliberately bounded: this does **not** widen [chargate](https://github.com/MagmaMoose/chargate)'s
 PR-time gate; Ponvara is the continuous/runtime counterpart.
 
@@ -34,7 +36,7 @@ In the private infra repo (`kubernetes/apps/security-integrations/`):
    and record a `GITHUB_Issue` so re-runs dedupe.
 
 **The critical coupling:** it runs *inside the DefectDojo Django image* and uses the
-**Django ORM** for exactly two things — (a) minting a superuser API token without a
+**Django ORM** for exactly two things: (a) minting a superuser API token without a
 password (`Token.objects.get_or_create`), and (b) the GitHub-issue dedupe/query
 (`Finding.objects.filter(...)`, `GITHUB_Issue.objects.create(...)`).
 
@@ -45,7 +47,7 @@ password (`Token.objects.get_or_create`), and (b) the GitHub-issue dedupe/query
 - **Code-in-YAML.** No tests, no linting, no type-checking, no CI, painful review and
   diffs. A security-critical integration deserves the same rigor as chargate.
 - **Image coupling + version lockstep.** Pinned to `defectdojo-django:2.58.4` so the
-  ORM matches the live DB schema — **every DefectDojo chart upgrade forces a lockstep
+  ORM matches the live DB schema: **every DefectDojo chart upgrade forces a lockstep
   bump**, and the image is ~1 GB. This is the single biggest fragility.
 - **ORM coupling to DefectDojo internals.** Importing `dojo.models` /
   `dojo.github.models` ties the job to DefectDojo's private data model across versions.
@@ -55,7 +57,7 @@ password (`Token.objects.get_or_create`), and (b) the GitHub-issue dedupe/query
   there's nowhere to add a webhook (e.g. "DT analysis finished → sync now").
 
 The goal is a **long-lived backend, in a repo, with a Helm chart, deployed separately.**
-That's the right call — and it unlocks a bigger idea below.
+That's the right call: it unlocks a bigger idea below.
 
 ---
 
@@ -65,24 +67,24 @@ Once it's a real service, generalize it slightly. It becomes the **orchestration
 enrichment layer** that sits beside DefectDojo:
 
 ```text
- Dependency-Track ─┐
- SonarQube ────────┤                         ┌─→ DefectDojo (reimport-scan, dedupe, SLA)
- DAST (ZAP/Nuclei)─┤──▶  Ponvara  ────┤
- <future source> ──┘     (connectors +       └─→ GitHub Issues (zero-touch, High/Crit)
+ Dependency-Track -+
+ SonarQube --------+                         +-> DefectDojo (reimport-scan, dedupe, SLA)
+ DAST (ZAP/Nuclei)-+--->  Ponvara  ---------+
+ <future source> --+     (connectors +       +-> GitHub Issues (zero-touch, High/Crit)
                           scheduler + API)
 ```
 
-Not everything needs this bus — **Trivy Operator, Prowler, ZAP, Nuclei have native
+Not everything needs this bus: **Trivy Operator, Prowler, ZAP, Nuclei have native
 DefectDojo parsers** (see the
 [security-tooling roadmap](https://github.com/MagmaMoose/security-platform)), so those
 push straight to DefectDojo. Scheduled DAST is owned by
 [draventis](https://github.com/MagmaMoose/draventis), which uses those native parsers.
 The bus earns its keep for exactly the cases the current CronJob handles:
 
-- **Movement DefectDojo can't do itself** — Dependency-Track has no "push to
+- **Movement DefectDojo can't do itself**: Dependency-Track has no "push to
   DefectDojo"; *something* must pull FPF and reimport. Same for any source lacking a
   native DefectDojo path.
-- **Cross-cutting enrichment** — the **zero-touch GitHub-issue auto-push** (repo
+- **Cross-cutting enrichment**: the **zero-touch GitHub-issue auto-push** (repo
   resolution by name across owners) is logic DefectDojo's per-product GitHub config
   can't do generically. This is the real value-add and belongs in one place.
 
@@ -94,7 +96,7 @@ a new source is a new connector module.
 ## 4. Target architecture
 
 **Language:** Python 3.11+ (the runtime image targets 3.12-slim), packaged with **uv +
-Ruff + pytest + full type hints** — mirror chargate's conventions exactly (and its
+Ruff + pytest + full type hints** (mirroring chargate's conventions exactly, including its
 `broker/` deploy pattern).
 
 **The one design decision that unlocks everything: drop the Django ORM, use the
@@ -139,12 +141,12 @@ ponvara/
 > (CronJob deployments). Dockerfile and GitHub Actions workflows are in place. Phase 2+
 > work (GitHub-issue push, long-lived service, generalization) remains future.
 
-### Runtime shape — long-lived Deployment
+### Runtime shape: long-lived Deployment
 
 A single **Deployment** (replicas: 1, `Recreate`) running `uvicorn`:
 
-- **In-process scheduler** (APScheduler) runs each source on its interval — replaces
-  the two CronJobs, keeps offsets, adds jitter.
+- **In-process scheduler** (APScheduler) runs each source on its interval, replacing
+  the two CronJobs, keeping offsets, and adding jitter.
 - **HTTP surface:** `/healthz`, `/readyz`, `/metrics` (Prometheus), and
   `POST /sync/{source}` for on-demand runs (handy for testing + future DT webhooks).
 - **`concurrency: Forbid` semantics** via an in-process lock per source.
@@ -154,8 +156,8 @@ A single **Deployment** (replicas: 1, `Recreate`) running `uvicorn`:
 > Simpler alternative if a daemon isn't wanted: keep **CronJobs but from our own slim
 > image** (chart `kind: CronJob`). You still get the repo/tests/CI/decoupling wins; you
 > lose on-demand triggers + metrics. The Helm chart can support **both** via a
-> `mode: deployment|cronjob` value. **Recommendation: Deployment** — it's literally the
-> "long-lived backend" described here, and the incremental ops cost is tiny.
+> `mode: deployment|cronjob` value. **Recommendation: Deployment** (it's literally the
+> "long-lived backend" described here, and the incremental ops cost is tiny).
 
 ### Helm chart (`charts/ponvara/`)
 
@@ -187,7 +189,7 @@ podSecurityContext: { runAsNonRoot: true, runAsUser: 10001, seccompProfile: { ty
 
 Templates: `deployment.yaml` **or** `cronjob.yaml` (by `mode`), `service.yaml`,
 `servicemonitor.yaml`, `externalsecret.yaml`, `serviceaccount.yaml`
-(`automountServiceAccountToken: false` — it never calls the k8s API), `_helpers.tpl`.
+(`automountServiceAccountToken: false`; it never calls the k8s API), `_helpers.tpl`.
 Ship the same hardening the SonarQube CronJob already uses (non-root high UID, RO
 rootfs, seccomp RuntimeDefault, no SA token).
 
@@ -202,8 +204,8 @@ rootfs, seccomp RuntimeDefault, no SA token).
 ### Image + release (mirror chargate)
 
 GHCR image `ghcr.io/magmamoose/ponvara`, built by a `release.yml` that runs
-python-semantic-release (version-from-commits) and a multi-arch `docker buildx` push —
-the exact pattern chargate already uses for its `broker` image. Flux's `ImagePolicy`
+python-semantic-release (version-from-commits) and a multi-arch `docker buildx` push.
+This follows the exact pattern chargate already uses for its `broker` image. Flux's `ImagePolicy`
 rewrites the chart tag on publish. External GitHub Actions are **SHA-pinned** with a
 `# vX.Y.Z` comment.
 
@@ -220,23 +222,23 @@ rewrites the chart tag on publish. External GitHub Actions are **SHA-pinned** wi
 | **4. Generalize** | Fold SonarQube in as a connector; document how a new source plugs in. Point future non-native sources (e.g. a bespoke DAST result shape) here; leave native-parser tools (Trivy Operator, Prowler, ZAP, Nuclei) pushing straight to DefectDojo. | 📋 TODO | low | per-connector toggle |
 
 You can stop after Phase 1 or 2 and already have a tested, reviewable, slim,
-version-decoupled job — most of the value is there. Phases 3–4 deliver the "long-lived
+version-decoupled job: most of the value is there. Phases 3-4 deliver the "long-lived
 backend" and the reuse.
 
 ---
 
 ## 6. Open decisions
 
-1. **Name.** `ponvara` (descriptive) — chosen, matching the sibling repos
+1. **Name:** `ponvara` (descriptive, matching the sibling repos
    [draventis](https://github.com/MagmaMoose/draventis) and
    [security-platform](https://github.com/MagmaMoose/security-platform) under the
-   MagmaMoose org. ✅ Resolved.
-2. **REST API** (Phase 1 decision) — chosen **yes**. Enables slim image, version-decoupled
+   MagmaMoose org). Chosen. ✅ Resolved.
+2. **REST API** (Phase 1 decision): chosen **yes**, enabling slim image and version-decoupling
    from DefectDojo. Phase 1 confirmed this works. ✅ Resolved.
-3. **Tag/note-based dedupe for GitHub-issue push** (Phase 2) — recommended **yes**. Must
+3. **Tag/note-based dedupe for GitHub-issue push** (Phase 2): recommended **yes**. Must
    validate that **`reimport-scan` preserves finding tags** (if reimport recreates findings,
    fall back to stable finding hash instead).
-4. **Deployment vs CronJob-from-own-image** (Phase 3) — "long-lived backend" → **Deployment**.
+4. **Deployment vs CronJob-from-own-image** (Phase 3): "long-lived backend" means **Deployment**.
    The chart supports both, so this is reversible.
 5. **Dedup state for phase 2+:** Stateless via DefectDojo tags (recommended) vs a tiny
    CNPG Postgres the service owns (needed only if cross-source correlation/SLA is tracked
@@ -249,21 +251,21 @@ backend" and the reuse.
 Create `MagmaMoose/ponvara` (this repo), `uv init`, drop `sync.py` in as
 `src/ponvara/sync.py`, split the GitHub-target parsing + severity-floor logic
 into pure functions, add `tests/` for them, wire `ci.yml` (ruff + pytest). Keep the
-existing infra CronJob running untouched. That's Phase 0 — zero production risk, and it
+existing infra CronJob running untouched. That's Phase 0 (zero production risk), and it
 gives every later phase a tested base to refactor against.
 
 ---
 
 ## Related work
 
-- **[MagmaMoose/chargate](https://github.com/MagmaMoose/chargate)** — PR-time SAST/SCA/IaC
-  gate (MegaLinter wrapper with net-new gating). Ponvara mirrors its conventions
-  and `broker/` deploy pattern, and is the continuous/runtime counterpart to chargate's
+- **[MagmaMoose/chargate](https://github.com/MagmaMoose/chargate)** (PR-time SAST/SCA/IaC
+  gate, a MegaLinter wrapper with net-new gating). Ponvara mirrors its conventions
+  and `broker/` deploy pattern; it's the continuous/runtime counterpart to chargate's
   pre-merge gate.
-- **[MagmaMoose/draventis](https://github.com/MagmaMoose/draventis)** — scheduled DAST
-  (ZAP + Nuclei) → DefectDojo via native parsers.
-- **[MagmaMoose/security-platform](https://github.com/MagmaMoose/security-platform)** —
-  the program index and security-tooling roadmap.
-- **DefectDojo** and **Dependency-Track** — self-hosted in the private infra repo;
-  DefectDojo is the system of record, Dependency-Track the SBOM/SCA source this bus was
+- **[MagmaMoose/draventis](https://github.com/MagmaMoose/draventis)** (scheduled DAST:
+  ZAP + Nuclei) pulls to DefectDojo via native parsers.
+- **[MagmaMoose/security-platform](https://github.com/MagmaMoose/security-platform)**
+  holds the program index and security-tooling roadmap.
+- **DefectDojo** and **Dependency-Track** are self-hosted in the private infra repo.
+  DefectDojo is the system of record; Dependency-Track is the SBOM/SCA source this bus was
   born to feed.

@@ -1,5 +1,7 @@
 # Quickstart
 
+<!-- sources: src/ponvara/__main__.py, charts/ponvara, src/ponvara/sync.py -->
+
 Get a Dependency-Track to DefectDojo sync running in 5 minutes.
 
 ## What you'll need
