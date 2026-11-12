@@ -1,5 +1,7 @@
 # Installation
 
+<!-- sources: charts/ponvara, pyproject.toml, .github/workflows -->
+
 ## Via Helm chart (Kubernetes)
 
 This is the recommended method for production deployments. The chart is not published to a Helm repository, so install it from a checkout.

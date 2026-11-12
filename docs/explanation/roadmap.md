@@ -41,7 +41,7 @@ Full detail (risk + reversibility columns) in [`../DESIGN.md`](../DESIGN.md).
 | **4. Generalize** | Fold SonarQube in as a connector; document how a new source plugs in. Point future non-native sources here; leave native-parser tools pushing straight to DefectDojo. | 📋 TODO |
 
 You can stop after Phase 1 or 2 and already have a tested, reviewable, slim,
-version-decoupled job — most of the value is there. Phases 3–4 deliver the long-lived
+version-decoupled job: most of the value is there. Phases 3-4 deliver the long-lived
 backend and the reuse.
 
 ## Open decisions
@@ -54,9 +54,9 @@ Tracked in [`../DESIGN.md § Open decisions`](../DESIGN.md#6-open-decisions):
 1. **Tag-based dedup for GitHub push** (Phase 2). Recommended: validate that
    `reimport-scan` preserves finding tags so GitHub-issue dedup can use them; fall back to
    finding hash if reimport recreates findings.
-2. **Deployment vs CronJob-from-own-image** (Phase 3) — "long-lived backend" points to
+2. **Deployment vs CronJob-from-own-image** (Phase 3): "long-lived backend" points to
    **Deployment**; the chart supports both.
-3. **Dedup state** (Phase 2) — stateless via DefectDojo tags (recommended) vs a tiny
+3. **Dedup state** (Phase 2): stateless via DefectDojo tags (recommended) vs a tiny
    service-owned Postgres (only if cross-source correlation/SLA is tracked here).
-4. **Scope beyond Phase 1** — confirmed: Phase 2 adds GitHub-issue push; Phase 3 adds
-   long-lived service; Phase 4 adds SonarQube connector and generalization.
+4. **Scope beyond Phase 1**: confirmed, Phase 2 adds GitHub-issue push, Phase 3 adds
+   long-lived service, Phase 4 adds SonarQube connector and generalization.
